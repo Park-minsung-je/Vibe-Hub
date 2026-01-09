@@ -6,6 +6,7 @@ import android.webkit.WebChromeClient
 import android.webkit.WebView
 import android.webkit.WebViewClient
 import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material.icons.Icons
@@ -14,6 +15,8 @@ import androidx.compose.material3.*
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
+import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.unit.dp
@@ -29,7 +32,7 @@ fun WebViewScreen(
     Box(
         modifier = Modifier
             .fillMaxSize()
-            .statusBarsPadding() // 상태바 영역 침범 방지
+            .statusBarsPadding()
     ) {
         // 1. 전체 화면 WebView
         AndroidView(
@@ -61,22 +64,27 @@ fun WebViewScreen(
             }
         )
 
-        // 2. 세련된 플로팅 뒤로가기 버튼
-        FloatingActionButton(
-            onClick = onBackClick,
+        // 2. 세련된 커스텀 그라데이션 플로팅 버튼
+        Box(
             modifier = Modifier
-                .padding(16.dp)
-                .size(48.dp)
-                .align(Alignment.TopStart),
-            shape = CircleShape,
-            containerColor = Color.White.copy(alpha = 0.8f),
-            contentColor = VibeBlue,
-            elevation = FloatingActionButtonDefaults.elevation(defaultElevation = 6.dp)
+                .padding(20.dp)
+                .size(52.dp)
+                .align(Alignment.TopStart)
+                .shadow(elevation = 12.dp, shape = CircleShape) // 깊이 있는 그림자
+                .clip(CircleShape)
+                .background(
+                    Brush.linearGradient(
+                        colors = listOf(VibeBlue, VibePurple) // Vibe 아이덴티티 그라데이션
+                    )
+                )
+                .clickable { onBackClick() },
+            contentAlignment = Alignment.Center
         ) {
             Icon(
                 imageVector = Icons.AutoMirrored.Filled.ArrowBack,
                 contentDescription = "뒤로가기",
-                modifier = Modifier.size(24.dp)
+                tint = Color.White, // 아이콘은 흰색으로 대비
+                modifier = Modifier.size(28.dp)
             )
         }
     }
