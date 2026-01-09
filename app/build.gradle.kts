@@ -42,7 +42,12 @@ android {
 }
 
 dependencies {
-    implementation(fileTree(mapOf("dir" to "libs", "include" to listOf("*.jar"))))
+    // 내부 모듈 의존성 추가
+    implementation(project(":core:common"))
+    implementation(project(":core:ui"))
+    implementation(project(":core:network"))
+    implementation(project(":feature:weather"))
+
     implementation(libs.androidx.core.ktx)
     implementation(libs.androidx.lifecycle.runtime.ktx)
     implementation(libs.androidx.activity.compose)
@@ -61,10 +66,10 @@ dependencies {
     implementation(libs.retrofit.converter.gson)
     implementation(libs.okhttp)
     implementation(libs.okhttp.logging)
+    implementation(libs.play.services.location)
 
     // Image Loading
     implementation(libs.coil.compose)
-    implementation(libs.play.services.location)
 
     // DI (Hilt)
     implementation(libs.hilt.android)
@@ -80,7 +85,6 @@ dependencies {
     debugImplementation(libs.androidx.ui.test.manifest)
 }
 
-// Allow references to generated code
 kapt {
     correctErrorTypes = true
 }
