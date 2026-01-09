@@ -27,6 +27,13 @@ import com.vibe.hub.model.WeatherItem
 import com.vibe.hub.ui.theme.VibeBlue
 import com.vibe.hub.ui.theme.VibePurple
 
+import android.Manifest
+import android.content.pm.PackageManager
+import androidx.activity.compose.rememberLauncherForActivityResult
+import androidx.activity.result.contract.ActivityResultContracts
+import androidx.compose.ui.platform.LocalContext
+import androidx.core.content.ContextCompat
+
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun WeatherScreen(
@@ -36,9 +43,34 @@ fun WeatherScreen(
     viewModel: WeatherViewModel = hiltViewModel()
 ) {
     val uiState by viewModel.uiState.collectAsState()
+    val context = LocalContext.current
 
-    LaunchedEffect(lat, lon) {
-        viewModel.fetchWeather(lat, lon)
+    // 권한 요청 런처
+    val permissionLauncher = rememberLauncherForActivityResult(
+        ActivityResultContracts.RequestMultiplePermissions()
+    ) { permissions ->
+        val granted = permissions[Manifest.permission.ACCESS_FINE_LOCATION] == true ||
+                      permissions[Manifest.permission.ACCESS_COARSE_LOCATION] == true
+        if (granted) {
+            // 권한 승인 시 데이터 요청 (실제로는 현재 위치를 가져오는 로직이 필요하지만 우선 전달받은 lat, lon 사용)
+            viewModel.fetchWeather(lat, lon)
+        } else {
+            // 거부 시 처리 로직 (나중에 보강)
+        }
+    }
+
+    LaunchedEffect(Unit) {
+        val fineLocationPermission = ContextCompat.checkSelfPermission(context, Manifest.permission.ACCESS_FINE_LOCATION)
+        val coarseLocationPermission = ContextCompat.checkSelfPermission(context, Manifest.permission.ACCESS_COARSE_LOCATION)
+
+        if (fineLocationPermission == PackageManager.PERMISSION_GRANTED || coarseLocationPermission == PackageManager.PERMISSION_GRANTED) {
+            viewModel.fetchWeather(lat, lon)
+        } else {
+            permissionLauncher.launch(arrayOf(
+                Manifest.permission.ACCESS_FINE_LOCATION,
+                Manifest.permission.ACCESS_COARSE_LOCATION
+            ))
+        }
     }
 
     // 세련된 배경 그라데이션 (더 깊이 있는 색감)
