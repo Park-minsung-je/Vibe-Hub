@@ -18,8 +18,8 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.vibe.hub.model.LaunchMode
 import com.vibe.hub.model.VibeService
-import com.vibe.hub.ui.theme.VibeBlue
-import com.vibe.hub.ui.theme.VibePurple
+import com.vibe.hub.core.ui.VibeBlue
+import com.vibe.hub.core.ui.VibePurple
 
 @Composable
 fun VibeServiceCard(
@@ -29,7 +29,6 @@ fun VibeServiceCard(
 ) {
     var launchMode by remember { mutableStateOf(if (service.isNativeSupported) LaunchMode.NATIVE else LaunchMode.WEBVIEW) }
 
-    // 카드 배경 그라데이션
     val cardGradient = Brush.verticalGradient(
         colors = listOf(MaterialTheme.colorScheme.surface, MaterialTheme.colorScheme.surfaceVariant)
     )
@@ -49,7 +48,6 @@ fun VibeServiceCard(
                 .padding(20.dp),
             horizontalAlignment = Alignment.CenterHorizontally
         ) {
-            // 아이콘 영역 (원형 배경)
             Box(
                 modifier = Modifier
                     .size(70.dp)
@@ -80,7 +78,6 @@ fun VibeServiceCard(
 
             Spacer(modifier = Modifier.height(20.dp))
 
-            // 모드 선택 영역 (고급스러운 디자인)
             Surface(
                 color = MaterialTheme.colorScheme.secondaryContainer.copy(alpha = 0.5f),
                 shape = RoundedCornerShape(12.dp),
