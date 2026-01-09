@@ -1,6 +1,8 @@
 package com.vibe.hub.feature.home
 
 import android.view.ViewGroup
+import android.webkit.GeolocationPermissions
+import android.webkit.WebChromeClient
 import android.webkit.WebView
 import android.webkit.WebViewClient
 import androidx.compose.foundation.layout.fillMaxSize
@@ -11,11 +13,6 @@ import androidx.compose.material3.*
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.viewinterop.AndroidView
-
-import android.webkit.GeolocationPermissions
-import android.webkit.WebChromeClient
-import android.webkit.WebView
-import android.webkit.WebViewClient
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
