@@ -21,3 +21,11 @@ dependencyResolutionManagement {
 
 rootProject.name = "Vibe Hub"
 include(":app")
+
+// Core 모듈군
+include(":core:common")
+include(":core:ui")
+include(":core:network")
+
+// Feature 모듈군
+include(":feature:weather")
