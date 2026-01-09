@@ -2,6 +2,9 @@ package com.vibe.hub.feature.weather
 
 import android.Manifest
 import android.content.pm.PackageManager
+import androidx.compose.animation.animateColorAsState
+import androidx.compose.animation.core.animateFloatAsState
+import androidx.compose.animation.core.tween
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
@@ -16,6 +19,7 @@ import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.geometry.Offset
@@ -30,6 +34,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.IntOffset
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.compose.ui.zIndex
 import androidx.core.content.ContextCompat
 import androidx.hilt.navigation.compose.hiltViewModel
 import com.vibe.hub.core.ui.VibeBlue
@@ -48,16 +53,28 @@ fun WeatherScreen(
     val context = LocalContext.current
     val density = LocalDensity.current
 
+    val topColor = Color(0xFFE0F2F1)
+    val bottomColor = Color(0xFFF3E5F5)
+
     val toolbarHeight = 64.dp
     val toolbarHeightPx = with(density) { toolbarHeight.roundToPx().toFloat() }
-    var toolbarOffsetHeightPx by remember { mutableFloatStateOf(0f) }
+    
+    // 상단바가 보여지는지 여부
+    var isToolbarVisible by remember { mutableStateOf(true) }
+    
+    // 애니메이션된 오프셋 계산
+    val animatedOffset by animateFloatAsState(
+        targetValue = if (isToolbarVisible) 0f else -toolbarHeightPx,
+        animationSpec = tween(durationMillis = 300),
+        label = "ToolbarOffset"
+    )
 
     val nestedScrollConnection = remember {
         object : NestedScrollConnection {
             override fun onPreScroll(available: Offset, source: NestedScrollSource): Offset {
-                val delta = available.y
-                val newOffset = toolbarOffsetHeightPx + delta
-                toolbarOffsetHeightPx = newOffset.coerceIn(-toolbarHeightPx, 0f)
+                // 위로 스크롤하면 숨김, 아래로 스크롤하면 표시
+                if (available.y < -10) isToolbarVisible = false
+                else if (available.y > 10) isToolbarVisible = true
                 return Offset.Zero
             }
         }
@@ -70,9 +87,7 @@ fun WeatherScreen(
         }
     }
 
-    val backgroundBrush = Brush.verticalGradient(
-        colors = listOf(Color(0xFFE0F2F1), Color(0xFFF3E5F5))
-    )
+    val backgroundBrush = Brush.verticalGradient(colors = listOf(topColor, bottomColor))
 
     Box(
         modifier = Modifier
@@ -80,6 +95,7 @@ fun WeatherScreen(
             .background(backgroundBrush)
             .nestedScroll(nestedScrollConnection)
     ) {
+        // 1. 메인 콘텐츠
         when (val state = uiState) {
             is WeatherUiState.Loading -> {
                 CircularProgressIndicator(modifier = Modifier.align(Alignment.Center), color = VibePurple)
@@ -92,14 +108,25 @@ fun WeatherScreen(
             }
         }
 
+        // 2. 상단 상태바 영역 (내용 가림용 고정 박스)
+        Box(
+            modifier = Modifier
+                .fillMaxWidth()
+                .windowInsetsTopHeight(WindowInsets.statusBars)
+                .background(topColor)
+                .zIndex(10f)
+        )
+
+        // 3. 애니메이션 상단바 (타이틀)
         Surface(
             modifier = Modifier
                 .fillMaxWidth()
-                .statusBarsPadding()
+                .padding(top = WindowInsets.statusBars.asPaddingValues().calculateTopPadding())
                 .height(toolbarHeight)
-                .offset { IntOffset(x = 0, y = toolbarOffsetHeightPx.roundToInt()) },
-            color = Color.White.copy(alpha = 0.7f),
-            shadowElevation = if (toolbarOffsetHeightPx == 0f) 0.dp else 4.dp
+                .offset { IntOffset(x = 0, y = animatedOffset.roundToInt()) }
+                .zIndex(5f),
+            color = topColor,
+            shadowElevation = 0.dp // 그림자 제거
         ) {
             Box(
                 modifier = Modifier.fillMaxSize().padding(start = 64.dp),
@@ -114,42 +141,53 @@ fun WeatherScreen(
             }
         }
 
-        val isFloating = toolbarOffsetHeightPx < -toolbarHeightPx / 2
+        // 4. 고정 뒤로가기 버튼 및 자연스러운 변신 로직
+        val buttonProgress = 1f - (animatedOffset / -toolbarHeightPx) // 1.0(상단바 보임) -> 0.0(숨겨짐)
+        
+        val iconColor by animateColorAsState(if (buttonProgress < 0.5f) Color.White else Color.Black)
+        val buttonAlpha by animateFloatAsState(if (buttonProgress < 0.5f) 1f else 0f)
+
         Box(
             modifier = Modifier
-                .statusBarsPadding()
+                .padding(top = WindowInsets.statusBars.asPaddingValues().calculateTopPadding())
                 .height(toolbarHeight)
                 .padding(start = 12.dp)
-                .width(48.dp),
+                .width(48.dp)
+                .zIndex(15f),
             contentAlignment = Alignment.Center
         ) {
+            // 플로팅 배경 (상단바가 숨겨질 때만 서서히 나타남)
             Box(
                 modifier = Modifier
                     .size(40.dp)
-                    .shadow(elevation = if (isFloating) 8.dp else 0.dp, shape = CircleShape)
+                    .alpha(1f - buttonProgress) // 자연스러운 변환을 위해 투명도 조절
+                    .shadow(elevation = 6.dp, shape = CircleShape)
                     .clip(CircleShape)
-                    .background(
-                        if (isFloating) Brush.linearGradient(listOf(VibeBlue, VibePurple))
-                        else Brush.linearGradient(listOf(Color.Transparent, Color.Transparent))
-                    )
-                    .clickable { onBackClick() },
-                contentAlignment = Alignment.Center
+                    .background(Brush.linearGradient(listOf(VibeBlue, VibePurple)))
+            )
+            
+            // 실제 버튼 아이콘
+            IconButton(
+                onClick = onBackClick,
+                modifier = Modifier.size(40.dp)
             ) {
                 Icon(
                     imageVector = Icons.AutoMirrored.Filled.ArrowBack,
                     contentDescription = "뒤로가기",
-                    tint = if (isFloating) Color.White else Color.Black,
+                    tint = iconColor,
                     modifier = Modifier.size(24.dp)
                 )
             }
         }
 
-        Spacer(
+        // 5. 하단 내비게이션 바 고정 영역 (확실한 가림 처리)
+        Box(
             modifier = Modifier
                 .fillMaxWidth()
                 .windowInsetsBottomHeight(WindowInsets.navigationBars)
+                .background(bottomColor)
                 .align(Alignment.BottomCenter)
-                .background(Color.White.copy(alpha = 0.5f))
+                .zIndex(10f)
         )
     }
 }
@@ -163,8 +201,8 @@ fun WeatherLuxuryContent(items: List<WeatherItem>, toolbarHeight: androidx.compo
         modifier = Modifier.fillMaxSize(),
         contentPadding = PaddingValues(
             top = WindowInsets.statusBars.asPaddingValues().calculateTopPadding() + toolbarHeight + 16.dp,
-            start = 20.dp,
-            end = 20.dp,
+            start = 20.dp, 
+            end = 20.dp, 
             bottom = WindowInsets.navigationBars.asPaddingValues().calculateBottomPadding() + 24.dp
         ),
         verticalArrangement = Arrangement.spacedBy(24.dp)
