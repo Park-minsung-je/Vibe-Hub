@@ -158,7 +158,7 @@ fun LuxuryMainCard(items: List<WeatherItem>) {
 @Composable
 fun LuxuryHourlySection(groupedItems: List<List<WeatherItem>>) {
     LazyRow(
-        horizontalArrangement = Arrangement.spacedBy(16.dp)
+        horizontalArrangement = Arrangement.spacedBy(8.dp)
     ) {
         items(groupedItems) { timeGroup ->
             val time = timeGroup[0].fcstTime.substring(0, 2)
