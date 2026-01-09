@@ -14,17 +14,23 @@ import androidx.compose.material3.*
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.viewinterop.AndroidView
+import com.vibe.hub.ui.theme.VibeBlue
+import com.vibe.hub.ui.theme.VibePurple
 
 @Composable
 fun WebViewScreen(
     url: String,
     onBackClick: () -> Unit
 ) {
-    // Scaffold 없이 Box를 사용하여 전체 화면을 구성합니다.
-    Box(modifier = Modifier.fillMaxSize()) {
+    Box(
+        modifier = Modifier
+            .fillMaxSize()
+            .statusBarsPadding() // 상태바 영역 침범 방지
+    ) {
         // 1. 전체 화면 WebView
         AndroidView(
             modifier = Modifier.fillMaxSize(),
@@ -47,8 +53,6 @@ fun WebViewScreen(
                         javaScriptEnabled = true
                         domStorageEnabled = true
                         setGeolocationEnabled(true)
-                        
-                        // 해상도 조정을 위해 최소한의 설정만 유지합니다.
                         useWideViewPort = true
                         loadWithOverviewMode = true
                     }
@@ -57,23 +61,23 @@ fun WebViewScreen(
             }
         )
 
-        // 2. 플로팅 뒤로가기 버튼 (좌측 상단)
-        Surface(
+        // 2. 세련된 플로팅 뒤로가기 버튼
+        FloatingActionButton(
+            onClick = onBackClick,
             modifier = Modifier
-                .padding(top = 48.dp, start = 16.dp) // 상태바 높이 고려
-                .size(40.dp)
+                .padding(16.dp)
+                .size(48.dp)
                 .align(Alignment.TopStart),
             shape = CircleShape,
-            color = Color.Black.copy(alpha = 0.3f), // 반투명 배경
-            contentColor = Color.White
+            containerColor = Color.White.copy(alpha = 0.8f),
+            contentColor = VibeBlue,
+            elevation = FloatingActionButtonDefaults.elevation(defaultElevation = 6.dp)
         ) {
-            IconButton(onClick = onBackClick) {
-                Icon(
-                    imageVector = Icons.AutoMirrored.Filled.ArrowBack,
-                    contentDescription = "뒤로가기",
-                    modifier = Modifier.size(24.dp)
-                )
-            }
+            Icon(
+                imageVector = Icons.AutoMirrored.Filled.ArrowBack,
+                contentDescription = "뒤로가기",
+                modifier = Modifier.size(24.dp)
+            )
         }
     }
 }
