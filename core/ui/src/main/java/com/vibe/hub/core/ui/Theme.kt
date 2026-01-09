@@ -48,8 +48,9 @@ fun VibeHubTheme(
             val window = (view.context as Activity).window
             val insetsController = WindowCompat.getInsetsController(window, view)
             
-            // 상태바 아이콘만 어둡게 설정 (밝은 배경 대비)
+            // 상태바 아이콘 스타일만 라이트/다크 모드에 맞춰 조절
             insetsController.isAppearanceLightStatusBars = !darkTheme
+            insetsController.isAppearanceLightNavigationBars = !darkTheme
         }
     }
 

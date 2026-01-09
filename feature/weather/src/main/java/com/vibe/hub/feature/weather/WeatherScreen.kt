@@ -50,11 +50,8 @@ fun WeatherScreen(
     val context = LocalContext.current
     val density = LocalDensity.current
 
-    // 상단바 높이 설정 (상태바 영역 제외 순수 Toolbar 높이)
     val toolbarHeight = 64.dp
     val toolbarHeightPx = with(density) { toolbarHeight.roundToPx().toFloat() }
-    
-    // 상단바 오프셋
     var toolbarOffsetHeightPx by remember { mutableFloatStateOf(0f) }
 
     val nestedScrollConnection = remember {
@@ -75,6 +72,7 @@ fun WeatherScreen(
         }
     }
 
+    // 화면 전체를 채우는 그라데이션 배경
     val backgroundBrush = Brush.verticalGradient(
         colors = listOf(Color(0xFFE0F2F1), Color(0xFFF3E5F5))
     )
@@ -82,10 +80,10 @@ fun WeatherScreen(
     Box(
         modifier = Modifier
             .fillMaxSize()
-            .background(backgroundBrush)
+            .background(backgroundBrush) // 꽉 채워진 배경
             .nestedScroll(nestedScrollConnection)
     ) {
-        // 1. 메인 콘텐츠
+        // 1. 메인 콘텐츠 (배경 위에 올라감)
         when (val state = uiState) {
             is WeatherUiState.Loading -> {
                 CircularProgressIndicator(modifier = Modifier.align(Alignment.Center), color = VibePurple)
@@ -98,34 +96,29 @@ fun WeatherScreen(
             }
         }
 
-        // 2. 통째로 올라가는 상단바 (배경 + 타이틀)
-        Surface(
+        // 2. 상단바 (통째로 움직임)
+        // Surface 대신 Box를 사용하고 투명도를 조절하여 배경 그라데이션과 일체감을 유지합니다.
+        Box(
             modifier = Modifier
                 .fillMaxWidth()
                 .statusBarsPadding()
                 .height(toolbarHeight)
-                .offset { IntOffset(x = 0, y = toolbarOffsetHeightPx.roundToInt()) },
-            color = Color.White.copy(alpha = 0.9f), // 불투명 배경을 주어 통째로 움직이는 느낌 강조
-            shadowElevation = 4.dp
+                .offset { IntOffset(x = 0, y = toolbarOffsetHeightPx.roundToInt()) }
+                .background(Color.White.copy(alpha = (1f + (toolbarOffsetHeightPx / toolbarHeightPx)) * 0.8f)) // 서서히 사라지는 투명 배경
         ) {
-            Box(
+            Text(
+                text = "Vibe Weather",
+                fontWeight = FontWeight.ExtraBold,
+                fontSize = 20.sp,
                 modifier = Modifier
-                    .fillMaxSize()
-                    .padding(start = 64.dp), // 뒤로가기 버튼 위치 고려
-                contentAlignment = Alignment.CenterStart
-            ) {
-                Text(
-                    text = "Vibe Weather",
-                    fontWeight = FontWeight.ExtraBold,
-                    fontSize = 20.sp,
-                    letterSpacing = (-1).sp,
-                    color = Color.Black
-                )
-            }
+                    .align(Alignment.CenterStart)
+                    .padding(start = 64.dp),
+                color = Color.Black
+            )
         }
 
-        // 3. 고정된 뒤로가기 버튼 (상단바가 올라가면 플로팅으로 변신)
-        val progress = 1f - (toolbarOffsetHeightPx / -toolbarHeightPx) // 1.0(다 보임) -> 0.0(숨겨짐)
+        // 3. 고정된 뒤로가기 버튼
+        val progress = 1f - (toolbarOffsetHeightPx / -toolbarHeightPx)
         
         Box(
             modifier = Modifier
@@ -138,10 +131,7 @@ fun WeatherScreen(
             Box(
                 modifier = Modifier
                     .size(40.dp)
-                    .shadow(
-                        elevation = if (progress < 0.5f) 8.dp else 0.dp, 
-                        shape = CircleShape
-                    )
+                    .shadow(elevation = if (progress < 0.5f) 8.dp else 0.dp, shape = CircleShape)
                     .clip(CircleShape)
                     .background(
                         if (progress < 0.5f) {
@@ -171,7 +161,12 @@ fun WeatherLuxuryContent(items: List<WeatherItem>) {
 
     LazyColumn(
         modifier = Modifier.fillMaxSize(),
-        contentPadding = PaddingValues(top = 80.dp, start = 20.dp, end = 20.dp, bottom = 24.dp),
+        contentPadding = PaddingValues(
+            top = WindowInsets.statusBars.asPaddingValues().calculateTopPadding() + 64.dp, 
+            start = 20.dp, 
+            end = 20.dp, 
+            bottom = WindowInsets.navigationBars.asPaddingValues().calculateBottomPadding() + 24.dp
+        ),
         verticalArrangement = Arrangement.spacedBy(24.dp)
     ) {
         item { LuxuryMainCard(currentData) }
@@ -189,6 +184,8 @@ fun WeatherLuxuryContent(items: List<WeatherItem>) {
         }
     }
 }
+
+// ... 하위 Composable 함수들 유지 (LuxurySectionTitle, LuxuryMainCard, 등) ...
 
 @Composable
 fun LuxurySectionTitle(title: String) {
