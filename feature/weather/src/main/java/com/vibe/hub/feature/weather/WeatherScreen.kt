@@ -2,8 +2,7 @@ package com.vibe.hub.feature.weather
 
 import android.Manifest
 import android.content.pm.PackageManager
-import androidx.compose.animation.*
-import androidx.compose.animation.core.animateColorAsState
+import androidx.compose.animation.animateColorAsState
 import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.animation.core.tween
 import androidx.compose.foundation.background
@@ -27,6 +26,7 @@ import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.input.nestedscroll.NestedScrollConnection
 import androidx.compose.ui.input.nestedscroll.NestedScrollSource
 import androidx.compose.ui.input.nestedscroll.nestedScroll
@@ -42,8 +42,6 @@ import androidx.hilt.navigation.compose.hiltViewModel
 import com.vibe.hub.core.ui.VibeBlue
 import com.vibe.hub.core.ui.VibePurple
 import kotlin.math.roundToInt
-
-// 중요: WeatherItem은 현재 패키지 내에 있으므로 별도 임포트 없음
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -139,48 +137,47 @@ fun WeatherScreen(
             )
         }
 
-        // 4. 뒤로가기 버튼 레이어 (엇박자 애니메이션)
+        // 4. 뒤로가기 버튼 레이어 (절대 좌표 + 그림자 보호)
         val buttonProgress = 1f - (animatedOffset / -toolbarHeightPx)
-        val statusBarHeight = WindowInsets.statusBars.asPaddingValues().calculateTopPadding()
         
+        // 엇박자 애니메이션 값 계산
+        val isFloated = buttonProgress < 0.2f
+        val iconColor by animateColorAsState(if (isFloated) Color.White else Color.Black, tween(200))
+        val bgAlpha by animateFloatAsState(if (isFloated) 1f else 0f, tween(300))
+        val bgScale by animateFloatAsState(if (isFloated) 1f else 0.8f, tween(300))
+
         Box(
             modifier = Modifier
-                .fillMaxWidth()
-                .height(toolbarHeight + statusBarHeight)
+                .fillMaxSize()
                 .zIndex(15f)
         ) {
+            // 버튼 위치 계산: 상태바 높이 + (툴바 높이 - 버튼 높이) / 2
+            // -> 상단바의 수직 중앙 정렬
+            val statusBarHeight = WindowInsets.statusBars.asPaddingValues().calculateTopPadding()
+            val buttonSize = 40.dp
+            val topPadding = statusBarHeight + (toolbarHeight - buttonSize) / 2
+
             Box(
                 modifier = Modifier
-                    .padding(top = statusBarHeight, start = 12.dp)
-                    .size(48.dp)
-                    .align(Alignment.TopStart),
-                contentAlignment = Alignment.Center
+                    .padding(start = 12.dp)
+                    .offset(y = topPadding) // 절대적인 Y축 위치 지정
+                    .size(buttonSize)
+                    .graphicsLayer { clip = false } // 그림자 잘림 방지 (필수)
             ) {
-                // 플로팅 배경 (엇박자 등장)
-                AnimatedVisibility(
-                    visible = !isToolbarVisible,
-                    enter = fadeIn(tween(200, delayMillis = 100)) + scaleIn(initialScale = 0.8f),
-                    exit = fadeOut(tween(150)) + scaleOut(targetScale = 0.8f)
-                ) {
-                    // Box + shadow(clip=false) 조합으로 안전하게 그림자 구현
-                    Box(
-                        modifier = Modifier
-                            .size(40.dp)
-                            .shadow(elevation = 6.dp, shape = CircleShape, clip = false)
-                            .background(Brush.linearGradient(listOf(VibeBlue, VibePurple)), CircleShape)
-                    )
-                }
-
-                // 아이콘 색상 전환
-                val iconColor by animateColorAsState(
-                    targetValue = if (!isToolbarVisible) Color.White else Color.Black,
-                    animationSpec = tween(durationMillis = 200),
-                    label = "IconColor"
+                // 플로팅 배경 (그림자 포함)
+                Box(
+                    modifier = Modifier
+                        .matchParentSize()
+                        .scale(bgScale)
+                        .alpha(bgAlpha)
+                        .shadow(elevation = 6.dp, shape = CircleShape, clip = false)
+                        .background(Brush.linearGradient(listOf(VibeBlue, VibePurple)), CircleShape)
                 )
                 
+                // 버튼 아이콘
                 IconButton(
                     onClick = onBackClick,
-                    modifier = Modifier.size(40.dp)
+                    modifier = Modifier.matchParentSize()
                 ) {
                     Icon(
                         imageVector = Icons.AutoMirrored.Filled.ArrowBack,
@@ -204,6 +201,7 @@ fun WeatherScreen(
     }
 }
 
+// ... 하위 컴포저블은 변경 없음 ...
 @Composable
 fun WeatherLuxuryContent(items: List<WeatherItem>, toolbarHeight: androidx.compose.ui.unit.Dp) {
     val currentData = items.filter { it.fcstDate == items[0].fcstDate && it.fcstTime == items[0].fcstTime }
@@ -234,8 +232,6 @@ fun WeatherLuxuryContent(items: List<WeatherItem>, toolbarHeight: androidx.compo
         }
     }
 }
-
-// ... 나머지 하위 Composable 함수들(LuxurySectionTitle 등)은 그대로 유지 ...
 
 @Composable
 fun LuxurySectionTitle(title: String) {
