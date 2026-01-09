@@ -1,6 +1,7 @@
 package com.vibe.hub
 
 import android.Manifest
+import android.app.Activity
 import android.content.pm.PackageManager
 import android.os.Bundle
 import android.widget.Toast
@@ -14,7 +15,9 @@ import androidx.compose.runtime.*
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.toArgb
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.platform.LocalView
 import androidx.core.content.ContextCompat
+import androidx.core.view.WindowCompat
 import androidx.navigation.NavType
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
@@ -39,24 +42,31 @@ class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         
-        /**
-         * Android 15 (API 35) 이상에서 Edge-to-Edge 설정이 변경되었습니다.
-         * SystemBarStyle.light()를 사용하면 배경이 밝을 때 아이콘을 어둡게 처리합니다.
-         */
+        // 1. Android 15+ 강제 정책에 따른 초기 스타일 설정
         enableEdgeToEdge(
-            statusBarStyle = SystemBarStyle.light(
-                Color.Transparent.toArgb(), // 스크림(그림자) 색상
-                Color.Transparent.toArgb()  // 어두운 테마에서의 스크림 색상
-            ),
-            navigationBarStyle = SystemBarStyle.light(
-                Color.Transparent.toArgb(),
-                Color.Transparent.toArgb()
-            )
+            statusBarStyle = SystemBarStyle.light(Color.Transparent.toArgb(), Color.Transparent.toArgb()),
+            navigationBarStyle = SystemBarStyle.light(Color.Transparent.toArgb(), Color.Transparent.toArgb())
         )
         
         fusedLocationClient = LocationServices.getFusedLocationProviderClient(this)
         
         setContent {
+            val view = LocalView.current
+            
+            // 2. Compose 렌더링 시점에 앱 전역 아이콘 색상을 어둡게(Dark) 강제 고정
+            if (!view.isInEditMode) {
+                DisposableEffect(Unit) {
+                    val window = (view.context as Activity).window
+                    val controller = WindowCompat.getInsetsController(window, view)
+                    
+                    // 모든 화면에서 아이콘 색상을 어둡게 표시
+                    controller.isAppearanceLightStatusBars = true
+                    controller.isAppearanceLightNavigationBars = true
+
+                    onDispose {}
+                }
+            }
+
             VibeHubTheme {
                 VibeHubNavigation(fusedLocationClient)
             }
