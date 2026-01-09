@@ -3,9 +3,16 @@ package com.vibe.hub.feature.weather
 import android.Manifest
 import android.content.pm.PackageManager
 import android.graphics.BlurMaskFilter
+import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.animateColorAsState
 import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.animation.core.tween
+import androidx.compose.animation.fadeIn
+import androidx.compose.animation.fadeOut
+import androidx.compose.animation.scaleIn
+import androidx.compose.animation.scaleOut
+import androidx.compose.animation.slideInVertically
+import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
@@ -24,19 +31,18 @@ import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.drawBehind
 import androidx.compose.ui.draw.scale
-import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.Paint
 import androidx.compose.ui.graphics.drawscope.drawIntoCanvas
-import androidx.compose.ui.graphics.toArgb
 import androidx.compose.ui.input.nestedscroll.NestedScrollConnection
 import androidx.compose.ui.input.nestedscroll.NestedScrollSource
 import androidx.compose.ui.input.nestedscroll.nestedScroll
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.IntOffset
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
@@ -111,7 +117,7 @@ fun WeatherScreen(
             }
         }
 
-        // 2. 상단 상태바 영역 가림막
+        // 2. 상단 가림막
         Box(
             modifier = Modifier
                 .fillMaxWidth()
@@ -120,7 +126,7 @@ fun WeatherScreen(
                 .zIndex(10f)
         )
 
-        // 3. 애니메이션 상단바 (타이틀)
+        // 3. 애니메이션 상단바
         Box(
             modifier = Modifier
                 .fillMaxWidth()
@@ -143,23 +149,25 @@ fun WeatherScreen(
 
         // 4. 뒤로가기 버튼 레이어 (Canvas 80dp 확장 버전)
         val buttonProgress = 1f - (animatedOffset / -toolbarHeightPx)
-        val iconColor by animateColorAsState(if (buttonProgress < 0.5f) Color.White else Color.Black)
-        val bgScale by animateFloatAsState(if (buttonProgress < 0.5f) 1f else 0.8f)
-        val bgAlpha by animateFloatAsState(if (buttonProgress < 0.2f) 1f else 0f)
+        val iconColor by animateColorAsState(
+            targetValue = if (buttonProgress < 0.5f) Color.White else Color.Black,
+            label = "IconColor"
+        )
+        val bgScale by animateFloatAsState(if (buttonProgress < 0.5f) 1f else 0.8f, label = "BgScale")
+        val bgAlpha by animateFloatAsState(if (buttonProgress < 0.2f) 1f else 0f, label = "BgAlpha")
 
         Box(
             modifier = Modifier
                 .statusBarsPadding()
                 .height(toolbarHeight)
-                .padding(start = 0.dp) // 넓은 박스 내에서 정렬하므로 패딩 0
-                .width(80.dp) // 그림자 공간 확보를 위한 넓은 너비
+                .padding(start = 0.dp) 
+                .width(80.dp)
                 .zIndex(15f),
             contentAlignment = Alignment.Center
         ) {
-            // 거대한 투명 캔버스 + 커스텀 그림자
             Box(
                 modifier = Modifier
-                    .size(80.dp) // 버튼(40dp)보다 2배 큼
+                    .size(80.dp)
                     .scale(bgScale)
                     .alpha(bgAlpha)
                     .drawBehind {
@@ -167,11 +175,9 @@ fun WeatherScreen(
                             val paint = Paint()
                             val frameworkPaint = paint.asFrameworkPaint()
                             frameworkPaint.color = android.graphics.Color.BLACK
-                            frameworkPaint.alpha = 50 // 그림자 진하기 조절
-                            frameworkPaint.maskFilter = BlurMaskFilter(20f, BlurMaskFilter.Blur.NORMAL) // 부드러운 흐림
+                            frameworkPaint.alpha = 50
+                            frameworkPaint.maskFilter = BlurMaskFilter(20f, BlurMaskFilter.Blur.NORMAL)
                             
-                            // 캔버스 중앙에 그림자 그리기
-                            // 오프셋 없이 정중앙에 배치 (요청하신 대로)
                             val buttonRadius = 20.dp.toPx()
                             canvas.drawCircle(
                                 center = Offset(size.width / 2, size.height / 2),
@@ -181,7 +187,6 @@ fun WeatherScreen(
                         }
                     }
             ) {
-                // 그라데이션 원형 배경 (중앙에 40dp로 배치)
                 Box(
                     modifier = Modifier
                         .size(40.dp)
@@ -191,12 +196,9 @@ fun WeatherScreen(
                 )
             }
             
-            // 실제 버튼 아이콘 (중앙 정렬)
             IconButton(
                 onClick = onBackClick,
-                modifier = Modifier
-                    .size(48.dp) // 터치 영역 넉넉하게
-                    .align(Alignment.Center)
+                modifier = Modifier.size(48.dp).align(Alignment.Center)
             ) {
                 Icon(
                     imageVector = Icons.AutoMirrored.Filled.ArrowBack,
@@ -207,7 +209,7 @@ fun WeatherScreen(
             }
         }
 
-        // 5. 하단 고정 가림막
+        // 5. 하단 가림막
         Box(
             modifier = Modifier
                 .fillMaxWidth()
@@ -219,11 +221,16 @@ fun WeatherScreen(
     }
 }
 
-// ... 하위 컴포저블은 변경 없음 ...
 @Composable
-fun WeatherLuxuryContent(items: List<WeatherItem>, toolbarHeight: androidx.compose.ui.unit.Dp) {
+fun WeatherLuxuryContent(items: List<WeatherItem>, toolbarHeight: Dp) {
     val currentData = items.filter { it.fcstDate == items[0].fcstDate && it.fcstTime == items[0].fcstTime }
     val hourlyData = items.groupBy { "${it.fcstDate}${it.fcstTime}" }.values.toList()
+
+    var isVisible by remember { mutableStateOf(false) }
+    
+    LaunchedEffect(Unit) {
+        isVisible = true
+    }
 
     LazyColumn(
         modifier = Modifier.fillMaxSize(),
@@ -235,21 +242,51 @@ fun WeatherLuxuryContent(items: List<WeatherItem>, toolbarHeight: androidx.compo
         ),
         verticalArrangement = Arrangement.spacedBy(24.dp)
     ) {
-        item { LuxuryMainCard(currentData) }
         item {
-            LuxurySectionTitle("시간별 예보")
-            LuxuryHourlySection(hourlyData)
+            AnimatedVisibility(
+                visible = isVisible,
+                enter = fadeIn(tween(500)) + slideInVertically(tween(500)) { 100 } + scaleIn(tween(500), initialScale = 0.9f)
+            ) {
+                LuxuryMainCard(currentData)
+            }
         }
         item {
-            LuxurySectionTitle("상세 기상 정보")
-            LuxuryDetailGrid(currentData)
+            AnimatedVisibility(
+                visible = isVisible,
+                enter = fadeIn(tween(500, delayMillis = 100)) + slideInVertically(tween(500, delayMillis = 100)) { 100 }
+            ) {
+                Column {
+                    LuxurySectionTitle("시간별 예보")
+                    LuxuryHourlySection(hourlyData)
+                }
+            }
         }
         item {
-            LuxurySectionTitle("일자별 예보")
-            LuxuryDailyList()
+            AnimatedVisibility(
+                visible = isVisible,
+                enter = fadeIn(tween(500, delayMillis = 200)) + slideInVertically(tween(500, delayMillis = 200)) { 100 }
+            ) {
+                Column {
+                    LuxurySectionTitle("상세 기상 정보")
+                    LuxuryDetailGrid(currentData)
+                }
+            }
+        }
+        item {
+            AnimatedVisibility(
+                visible = isVisible,
+                enter = fadeIn(tween(500, delayMillis = 300)) + slideInVertically(tween(500, delayMillis = 300)) { 100 }
+            ) {
+                Column {
+                    LuxurySectionTitle("일자별 예보")
+                    LuxuryDailyList()
+                }
+            }
         }
     }
 }
+
+// ... 하위 컴포저블(LuxurySectionTitle, LuxuryMainCard 등) 동일 유지 ...
 
 @Composable
 fun LuxurySectionTitle(title: String) {
