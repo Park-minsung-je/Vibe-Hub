@@ -19,22 +19,32 @@ import dagger.hilt.android.AndroidEntryPoint
 import java.net.URLEncoder
 import java.nio.charset.StandardCharsets
 
+import android.Manifest
+import android.content.pm.PackageManager
+import androidx.core.app.ActivityCompat
+import com.google.android.gms.location.FusedLocationProviderClient
+import com.google.android.gms.location.LocationServices
+
 @AndroidEntryPoint
 class MainActivity : ComponentActivity() {
+    private lateinit var fusedLocationClient: FusedLocationProviderClient
+
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
+        fusedLocationClient = LocationServices.getFusedLocationProviderClient(this)
         enableEdgeToEdge()
         setContent {
             VibeHubTheme {
-                VibeHubNavigation()
+                VibeHubNavigation(fusedLocationClient)
             }
         }
     }
 }
 
 @Composable
-fun VibeHubNavigation() {
+fun VibeHubNavigation(fusedLocationClient: FusedLocationProviderClient) {
     val navController = rememberNavController()
+    val context = LocalContext.current
 
     NavHost(navController = navController, startDestination = "home") {
         composable("home") {
