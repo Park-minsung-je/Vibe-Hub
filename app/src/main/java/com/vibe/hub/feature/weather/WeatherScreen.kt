@@ -1,6 +1,5 @@
 package com.vibe.hub.feature.weather
 
-import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
@@ -17,6 +16,7 @@ import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
@@ -41,14 +41,18 @@ fun WeatherScreen(
         viewModel.fetchWeather(lat, lon)
     }
 
+    // 세련된 배경 그라데이션 (더 깊이 있는 색감)
     val backgroundBrush = Brush.verticalGradient(
-        colors = listOf(VibeBlue.copy(alpha = 0.05f), Color.White)
+        colors = listOf(
+            Color(0xFFE0F2F1), // 상단 연한 민트/블루
+            Color(0xFFF3E5F5)  // 하단 연한 퍼플
+        )
     )
 
     Scaffold(
         topBar = {
             TopAppBar(
-                title = { Text("Vibe Weather", fontWeight = FontWeight.ExtraBold) },
+                title = { Text("Weather Vibe", fontWeight = FontWeight.ExtraBold, letterSpacing = (-1).sp) },
                 navigationIcon = {
                     IconButton(onClick = onBackClick) {
                         Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Back")
@@ -69,10 +73,10 @@ fun WeatherScreen(
                     CircularProgressIndicator(modifier = Modifier.align(Alignment.Center), color = VibePurple)
                 }
                 is WeatherUiState.Success -> {
-                    WeatherPolishedContent(state.data)
+                    WeatherLuxuryContent(state.data)
                 }
                 is WeatherUiState.Error -> {
-                    Text(text = "오류: ${state.message}", modifier = Modifier.align(Alignment.Center), color = MaterialTheme.colorScheme.error)
+                    Text(text = "Error: ${state.message}", modifier = Modifier.align(Alignment.Center))
                 }
             }
         }
@@ -80,133 +84,118 @@ fun WeatherScreen(
 }
 
 @Composable
-fun WeatherPolishedContent(items: List<WeatherItem>) {
+fun WeatherLuxuryContent(items: List<WeatherItem>) {
     val currentData = items.filter { it.fcstDate == items[0].fcstDate && it.fcstTime == items[0].fcstTime }
     val hourlyData = items.groupBy { "${it.fcstDate}${it.fcstTime}" }.values.toList()
 
     LazyColumn(
         modifier = Modifier.fillMaxSize(),
-        contentPadding = PaddingValues(16.dp),
-        verticalArrangement = Arrangement.spacedBy(20.dp)
+        contentPadding = PaddingValues(20.dp),
+        verticalArrangement = Arrangement.spacedBy(24.dp)
     ) {
-        // 1. 현재 날씨 요약 (가장 시인성이 높은 디자인)
+        // 메인 요약 카드 (Vibe 그라데이션 적용)
         item {
-            CurrentWeatherCard(currentData)
+            LuxuryMainCard(currentData)
         }
 
-        // 2. 시간별 예보
+        // 시간별 예보 (유리창 효과 카드)
         item {
-            SectionTitle("시간별 예보")
-            HourlyWeatherSection(hourlyData)
+            LuxurySectionTitle("Hourly Forecast")
+            LuxuryHourlySection(hourlyData)
         }
 
-        // 3. 상세 기상 정보 (그리드 카드)
+        // 상세 정보 (깔끔한 아이콘 리스트)
         item {
-            SectionTitle("상세 기상 정보")
-            DetailedWeatherGrid(currentData)
+            LuxurySectionTitle("Details")
+            LuxuryDetailGrid(currentData)
         }
 
-        // 4. 일자별 예보 (새로 추가)
+        // 일자별 예보 (모던 리스트)
         item {
-            SectionTitle("일자별 예보 (준비 중)")
-            DailyWeatherList()
+            LuxurySectionTitle("7-Day Forecast")
+            LuxuryDailyList()
         }
     }
 }
 
 @Composable
-fun SectionTitle(title: String) {
+fun LuxurySectionTitle(title: String) {
     Text(
         text = title,
-        style = MaterialTheme.typography.titleMedium,
+        style = MaterialTheme.typography.labelLarge,
         fontWeight = FontWeight.Bold,
-        modifier = Modifier.padding(bottom = 8.dp, start = 4.dp)
+        color = VibePurple.copy(alpha = 0.8f),
+        modifier = Modifier.padding(bottom = 12.dp, start = 4.dp)
     )
 }
 
 @Composable
-fun CurrentWeatherCard(items: List<WeatherItem>) {
+fun LuxuryMainCard(items: List<WeatherItem>) {
     val temp = items.find { it.category == "TMP" }?.fcstValue ?: "--"
     val skyValue = items.find { it.category == "SKY" }?.fcstValue ?: "1"
-    val skyLabel = getSkyDescription(skyValue)
     
     Card(
         modifier = Modifier.fillMaxWidth(),
         shape = RoundedCornerShape(32.dp),
-        colors = CardDefaults.cardColors(containerColor = VibeBlue),
-        elevation = CardDefaults.cardElevation(defaultElevation = 8.dp)
+        colors = CardDefaults.cardColors(containerColor = Color.Transparent)
     ) {
-        Column(
-            modifier = Modifier.padding(32.dp).fillMaxWidth(),
-            horizontalAlignment = Alignment.CenterHorizontally
+        Box(
+            modifier = Modifier
+                .background(Brush.linearGradient(listOf(VibeBlue, VibePurple)))
+                .padding(32.dp)
+                .fillMaxWidth(),
+            contentAlignment = Alignment.Center
         ) {
-            Text("현재 기온", color = Color.White.copy(alpha = 0.7f), style = MaterialTheme.typography.labelLarge)
-            Text(text = "${temp}℃", fontSize = 72.sp, fontWeight = FontWeight.Black, color = Color.White)
-            Spacer(modifier = Modifier.height(8.dp))
-            Surface(
-                color = Color.White.copy(alpha = 0.2f),
-                shape = CircleShape
-            ) {
-                Text(
-                    text = skyLabel,
-                    color = Color.White,
-                    modifier = Modifier.padding(horizontal = 16.dp, vertical = 4.dp),
-                    style = MaterialTheme.typography.bodyMedium,
-                    fontWeight = FontWeight.Bold
-                )
+            Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                Text("Current Temperature", color = Color.White.copy(alpha = 0.7f), fontSize = 14.sp)
+                Text(text = "${temp}°", fontSize = 80.sp, fontWeight = FontWeight.Black, color = Color.White)
+                Text(text = getSkyDescription(skyValue), color = Color.White, style = MaterialTheme.typography.titleMedium)
             }
         }
     }
 }
 
 @Composable
-fun HourlyWeatherSection(groupedItems: List<List<WeatherItem>>) {
+fun LuxuryHourlySection(groupedItems: List<List<WeatherItem>>) {
     LazyRow(
-        horizontalArrangement = Arrangement.spacedBy(12.dp),
-        contentPadding = PaddingValues(horizontal = 4.dp, vertical = 8.dp)
+        horizontalArrangement = Arrangement.spacedBy(16.dp)
     ) {
         items(groupedItems) { timeGroup ->
             val time = timeGroup[0].fcstTime.substring(0, 2)
             val temp = timeGroup.find { it.category == "TMP" }?.fcstValue ?: ""
             
-            Card(
-                shape = RoundedCornerShape(20.dp),
-                colors = CardDefaults.cardColors(containerColor = Color.White),
-                border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant),
-                elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
+            Column(
+                modifier = Modifier
+                    .clip(RoundedCornerShape(20.dp))
+                    .background(Color.White.copy(alpha = 0.5f))
+                    .padding(horizontal = 16.dp, vertical = 20.dp),
+                horizontalAlignment = Alignment.CenterHorizontally
             ) {
-                Column(
-                    modifier = Modifier.padding(horizontal = 16.dp, vertical = 20.dp),
-                    horizontalAlignment = Alignment.CenterHorizontally
-                ) {
-                    Text("${time}시", style = MaterialTheme.typography.labelMedium, color = Color.Gray)
-                    Text("🌤️", fontSize = 28.sp, modifier = Modifier.padding(vertical = 8.dp))
-                    Text("${temp}°", fontWeight = FontWeight.ExtraBold, fontSize = 18.sp)
-                }
+                Text("${time}h", style = MaterialTheme.typography.labelMedium, color = VibePurple)
+                Text("🌤️", fontSize = 24.sp, modifier = Modifier.padding(vertical = 12.dp))
+                Text("${temp}°", fontWeight = FontWeight.Bold, fontSize = 16.sp)
             }
         }
     }
 }
 
 @Composable
-fun DetailedWeatherGrid(items: List<WeatherItem>) {
-    val categories = listOf("REH" to "습도", "WSD" to "풍속", "POP" to "강수확률", "VEC" to "풍향")
+fun LuxuryDetailGrid(items: List<WeatherItem>) {
+    val details = listOf("REH" to "Humidity", "WSD" to "Wind", "POP" to "Rain", "VEC" to "Direction")
     
-    Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
-        categories.chunked(2).forEach { rowItems ->
-            Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(10.dp)) {
+    Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
+        details.chunked(2).forEach { rowItems ->
+            Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(12.dp)) {
                 rowItems.forEach { (cat, label) ->
                     val value = items.find { it.category == cat }?.fcstValue ?: "--"
-                    Card(
+                    Surface(
                         modifier = Modifier.weight(1f),
-                        shape = RoundedCornerShape(20.dp),
-                        colors = CardDefaults.cardColors(containerColor = Color.White),
-                        border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant),
-                        elevation = CardDefaults.cardElevation(defaultElevation = 1.dp)
+                        color = Color.White.copy(alpha = 0.6f),
+                        shape = RoundedCornerShape(24.dp)
                     ) {
-                        Row(modifier = Modifier.padding(20.dp), verticalAlignment = Alignment.CenterVertically) {
-                            Text(label, style = MaterialTheme.typography.bodyMedium, color = Color.Gray, modifier = Modifier.weight(1f))
-                            Text(value, fontWeight = FontWeight.Bold, style = MaterialTheme.typography.bodyLarge)
+                        Column(modifier = Modifier.padding(20.dp)) {
+                            Text(label, style = MaterialTheme.typography.labelSmall, color = Color.Gray)
+                            Text(value, fontWeight = FontWeight.ExtraBold, fontSize = 18.sp, color = Color.DarkGray)
                         }
                     }
                 }
@@ -216,34 +205,24 @@ fun DetailedWeatherGrid(items: List<WeatherItem>) {
 }
 
 @Composable
-fun DailyWeatherList() {
-    // 임시 일자별 예보 리스트
-    Card(
-        modifier = Modifier.fillMaxWidth(),
-        shape = RoundedCornerShape(20.dp),
-        colors = CardDefaults.cardColors(containerColor = Color.White),
-        border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant)
+fun LuxuryDailyList() {
+    Surface(
+        color = Color.White.copy(alpha = 0.4f),
+        shape = RoundedCornerShape(28.dp),
+        modifier = Modifier.fillMaxWidth()
     ) {
-        Column(modifier = Modifier.padding(8.dp)) {
+        Column(modifier = Modifier.padding(16.dp)) {
             repeat(5) { i ->
                 Row(
-                    modifier = Modifier.fillMaxWidth().padding(12.dp),
-                    verticalAlignment = Alignment.CenterVertically,
-                    horizontalArrangement = Arrangement.SpaceBetween
+                    modifier = Modifier.fillMaxWidth().padding(16.dp),
+                    verticalAlignment = Alignment.CenterVertically
                 ) {
-                    Text("내일 + ${i}일", modifier = Modifier.weight(1f))
+                    Text("Day ${i + 1}", modifier = Modifier.weight(1f), fontWeight = FontWeight.Medium)
                     Text("☀️", modifier = Modifier.weight(1f))
-                    Text("12° / 22°", fontWeight = FontWeight.Bold)
+                    Text("12° / 24°", fontWeight = FontWeight.Bold, color = VibeBlue)
                 }
-                if (i < 4) HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant)
+                if (i < 4) HorizontalDivider(color = Color.White.copy(alpha = 0.3f), thickness = 1.dp)
             }
         }
     }
-}
-
-fun getSkyDescription(value: String): String = when(value) {
-    "1" -> "맑음"
-    "3" -> "구름많음"
-    "4" -> "흐림"
-    else -> "맑음"
 }
