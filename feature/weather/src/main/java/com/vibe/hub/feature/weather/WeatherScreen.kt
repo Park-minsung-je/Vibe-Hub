@@ -4,11 +4,6 @@ import android.Manifest
 import android.content.pm.PackageManager
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
-import androidx.compose.animation.AnimatedVisibility
-import androidx.compose.animation.core.animateDpAsState
-import androidx.compose.animation.core.animateFloatAsState
-import androidx.compose.animation.fadeIn
-import androidx.compose.animation.fadeOut
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
@@ -25,19 +20,26 @@ import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.shadow
+import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.input.nestedscroll.NestedScrollConnection
+import androidx.compose.ui.input.nestedscroll.NestedScrollSource
+import androidx.compose.ui.input.nestedscroll.nestedScroll
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.unit.IntOffset
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.core.content.ContextCompat
 import androidx.hilt.navigation.compose.hiltViewModel
 import com.vibe.hub.core.ui.VibeBlue
 import com.vibe.hub.core.ui.VibePurple
+import com.vibe.hub.model.WeatherItem
+import kotlin.math.roundToInt
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -49,14 +51,26 @@ fun WeatherScreen(
 ) {
     val uiState by viewModel.uiState.collectAsState()
     val context = LocalContext.current
-    val scrollState = rememberLazyListState()
+    val density = LocalDensity.current
 
-    // 스크롤 위치에 따른 알파값 계산 (0.0 ~ 1.0)
-    // 첫 번째 아이템이 사라질 때까지 투명도를 조절합니다.
-    val toolbarAlpha by animateFloatAsState(
-        targetValue = if (scrollState.firstVisibleItemIndex > 0) 0f else 1f,
-        label = "ToolbarAlpha"
-    )
+    // 상단바 높이 설정
+    val toolbarHeight = 64.dp
+    val toolbarHeightPx = with(density) { toolbarHeight.roundToPx().toFloat() }
+    
+    // 상단바의 현재 오프셋 상태 (0: 완전 노출, -toolbarHeightPx: 완전 숨김)
+    var toolbarOffsetHeightPx by remember { mutableFloatStateOf(0f) }
+
+    // 스크롤 감지를 위한 NestedScrollConnection
+    val nestedScrollConnection = remember {
+        object : NestedScrollConnection {
+            override fun onPreScroll(available: Offset, source: NestedScrollSource): Offset {
+                val delta = available.y
+                val newOffset = toolbarOffsetHeightPx + delta
+                toolbarOffsetHeightPx = newOffset.coerceIn(-toolbarHeightPx, 0f)
+                return Offset.Zero
+            }
+        }
+    }
 
     LaunchedEffect(Unit) {
         val fineLocationPermission = ContextCompat.checkSelfPermission(context, Manifest.permission.ACCESS_FINE_LOCATION)
@@ -69,90 +83,96 @@ fun WeatherScreen(
         colors = listOf(Color(0xFFE0F2F1), Color(0xFFF3E5F5))
     )
 
-    Box(modifier = Modifier
-        .fillMaxSize()
-        .background(backgroundBrush)
+    Box(
+        modifier = Modifier
+            .fillMaxSize()
+            .background(backgroundBrush)
+            .nestedScroll(nestedScrollConnection) // 스크롤 이벤트 연결
     ) {
-        // 1. 메인 콘텐츠 (스크롤 가능한 리스트)
+        // 1. 메인 콘텐츠
         when (val state = uiState) {
             is WeatherUiState.Loading -> {
                 CircularProgressIndicator(modifier = Modifier.align(Alignment.Center), color = VibePurple)
             }
             is WeatherUiState.Success -> {
-                WeatherLuxuryContent(state.data, scrollState)
+                WeatherLuxuryContent(state.data)
             }
             is WeatherUiState.Error -> {
                 Text(text = "오류: ${state.message}", modifier = Modifier.align(Alignment.Center))
             }
         }
 
-        // 2. 스크롤에 반응하는 상단바 및 뒤로가기 버튼
-        WeatherCollapsingToolbar(
-            alpha = toolbarAlpha,
-            onBackClick = onBackClick
-        )
-    }
-}
-
-@Composable
-fun WeatherCollapsingToolbar(
-    alpha: Float,
-    onBackClick: () -> Unit
-) {
-    Box(
-        modifier = Modifier
-            .fillMaxWidth()
-            .statusBarsPadding()
-            .height(64.dp)
-            .padding(horizontal = 16.dp)
-    ) {
-        // 타이틀 (스크롤 시 서서히 사라짐)
-        Text(
-            text = "Vibe Weather",
-            fontWeight = FontWeight.ExtraBold,
-            fontSize = 20.sp,
+        // 2. 이동하는 상단바 (배경 및 타이틀)
+        Surface(
             modifier = Modifier
-                .align(Alignment.Center)
-                .alpha(alpha),
-            letterSpacing = (-1).sp
-        )
+                .fillMaxWidth()
+                .statusBarsPadding()
+                .height(toolbarHeight)
+                .offset { IntOffset(x = 0, y = toolbarOffsetHeightPx.roundToInt()) },
+            color = Color.Transparent // 배경색은 투명하게 하여 일체감 유지
+        ) {
+            Box(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .padding(start = 64.dp), // 뒤로가기 버튼 공간 확보
+                contentAlignment = Alignment.CenterStart
+            ) {
+                Text(
+                    text = "Vibe Weather",
+                    fontWeight = FontWeight.ExtraBold,
+                    fontSize = 20.sp,
+                    letterSpacing = (-1).sp,
+                    color = Color.Black
+                )
+            }
+        }
 
-        // 세련된 플로팅 스타일 뒤로가기 버튼 (항상 유지됨)
+        // 3. 고정된 위치의 뒤로가기 버튼 (상태에 따라 플로팅으로 변함)
+        val progress = 1f - (toolbarOffsetHeightPx / -toolbarHeightPx) // 1.0(보임) -> 0.0(숨겨짐)
+        
         Box(
             modifier = Modifier
-                .size(40.dp)
-                .align(Alignment.CenterStart)
-                .shadow(elevation = if (alpha < 1f) 8.dp else 0.dp, shape = CircleShape)
-                .clip(CircleShape)
-                .background(
-                    if (alpha < 1f) {
-                        // 스크롤되어 상단바가 사라지면 그라데이션 배경 적용
-                        Brush.linearGradient(colors = listOf(VibeBlue, VibePurple))
-                    } else {
-                        // 초기 상태에서는 투명 배경
-                        Brush.linearGradient(colors = listOf(Color.Transparent, Color.Transparent))
-                    }
-                )
-                .clickable { onBackClick() },
+                .statusBarsPadding()
+                .height(toolbarHeight)
+                .padding(start = 12.dp)
+                .width(48.dp),
             contentAlignment = Alignment.Center
         ) {
-            Icon(
-                imageVector = Icons.AutoMirrored.Filled.ArrowBack,
-                contentDescription = "뒤로가기",
-                tint = if (alpha < 1f) Color.White else Color.Black,
-                modifier = Modifier.size(24.dp)
-            )
+            Box(
+                modifier = Modifier
+                    .size(40.dp)
+                    .shadow(
+                        elevation = if (progress < 0.8f) 8.dp else 0.dp, 
+                        shape = CircleShape
+                    )
+                    .clip(CircleShape)
+                    .background(
+                        if (progress < 0.8f) {
+                            Brush.linearGradient(colors = listOf(VibeBlue, VibePurple))
+                        } else {
+                            Brush.linearGradient(colors = listOf(Color.Transparent, Color.Transparent))
+                        }
+                    )
+                    .clickable { onBackClick() },
+                contentAlignment = Alignment.Center
+            ) {
+                Icon(
+                    imageVector = Icons.AutoMirrored.Filled.ArrowBack,
+                    contentDescription = "뒤로가기",
+                    tint = if (progress < 0.8f) Color.White else Color.Black,
+                    modifier = Modifier.size(24.dp)
+                )
+            }
         }
     }
 }
 
 @Composable
-fun WeatherLuxuryContent(items: List<WeatherItem>, scrollState: LazyListState) {
+fun WeatherLuxuryContent(items: List<WeatherItem>) {
     val currentData = items.filter { it.fcstDate == items[0].fcstDate && it.fcstTime == items[0].fcstTime }
     val hourlyData = items.groupBy { "${it.fcstDate}${it.fcstTime}" }.values.toList()
 
     LazyColumn(
-        state = scrollState, // 스크롤 상태 공유
         modifier = Modifier.fillMaxSize(),
         contentPadding = PaddingValues(top = 80.dp, start = 20.dp, end = 20.dp, bottom = 24.dp),
         verticalArrangement = Arrangement.spacedBy(24.dp)
@@ -173,7 +193,7 @@ fun WeatherLuxuryContent(items: List<WeatherItem>, scrollState: LazyListState) {
     }
 }
 
-// ... LuxurySectionTitle, LuxuryMainCard, LuxuryHourlySection, LuxuryDetailGrid, LuxuryDailyList, getSkyState, getWeatherEmoji, getUnit 함수들 유지 ...
+// --- 하위 Composable 및 Helper 함수들 (기존과 동일) ---
 
 @Composable
 fun LuxurySectionTitle(title: String) {
