@@ -5,6 +5,7 @@ import android.content.pm.PackageManager
 import android.os.Bundle
 import android.widget.Toast
 import androidx.activity.ComponentActivity
+import androidx.activity.SystemBarStyle
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
@@ -40,27 +41,21 @@ class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         
-        // Edge-to-Edge 활성화
-        enableEdgeToEdge()
+        // Edge-to-Edge 스타일 명시적 설정 (아이콘 색상 어둡게 고정)
+        enableEdgeToEdge(
+            statusBarStyle = SystemBarStyle.light(
+                Color.Transparent.toArgb(), 
+                Color.Transparent.toArgb()
+            ),
+            navigationBarStyle = SystemBarStyle.light(
+                Color.Transparent.toArgb(), 
+                Color.Transparent.toArgb()
+            )
+        )
         
         fusedLocationClient = LocationServices.getFusedLocationProviderClient(this)
         
         setContent {
-            val view = LocalView.current
-            if (!view.isInEditMode) {
-                SideEffect {
-                    val window = (view.context as android.app.Activity).window
-                    // 시스템 바 배경을 투명하게 설정 (Edge-to-Edge 극대화)
-                    window.navigationBarColor = Color.Transparent.toArgb()
-                    window.statusBarColor = Color.Transparent.toArgb()
-
-                    val insetsController = WindowCompat.getInsetsController(window, view)
-                    // 중요: 밝은 배경이므로 아이콘들을 어둡게(Dark) 설정
-                    insetsController.isAppearanceLightStatusBars = true
-                    insetsController.isAppearanceLightNavigationBars = true
-                }
-            }
-
             VibeHubTheme {
                 VibeHubNavigation(fusedLocationClient)
             }
