@@ -11,7 +11,9 @@ import androidx.activity.enableEdgeToEdge
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.runtime.*
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.platform.LocalView
 import androidx.core.content.ContextCompat
+import androidx.core.view.WindowCompat
 import androidx.navigation.NavType
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
@@ -35,9 +37,24 @@ class MainActivity : ComponentActivity() {
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
-        fusedLocationClient = LocationServices.getFusedLocationProviderClient(this)
+        
+        // Edge-to-Edge 활성화
         enableEdgeToEdge()
+        
+        fusedLocationClient = LocationServices.getFusedLocationProviderClient(this)
+        
         setContent {
+            val view = LocalView.current
+            if (!view.isInEditMode) {
+                SideEffect {
+                    val window = (view.context as android.app.Activity).window
+                    // 전역 설정: 상태바와 내비바 아이콘을 어둡게 설정 (밝은 배경용)
+                    val insetsController = WindowCompat.getInsetsController(window, view)
+                    insetsController.isAppearanceLightStatusBars = true
+                    insetsController.isAppearanceLightNavigationBars = true
+                }
+            }
+
             VibeHubTheme {
                 VibeHubNavigation(fusedLocationClient)
             }
