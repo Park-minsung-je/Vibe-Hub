@@ -2,11 +2,14 @@ package com.vibe.hub.feature.home
 
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.scale
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
@@ -33,14 +36,14 @@ fun VibeServiceCard(
             modifier = Modifier.padding(16.dp),
             horizontalAlignment = Alignment.CenterHorizontally
         ) {
-            // Icon Placeholder (Coil 등을 사용하여 이미지 로드 가능)
+            // Icon Placeholder
             Box(
                 modifier = Modifier
                     .size(60.dp)
                     .padding(8.dp),
                 contentAlignment = Alignment.Center
             ) {
-                Text(text = "🌤️", fontSize = 40.sp) // 임시 아이콘
+                Text(text = "🌤️", fontSize = 40.sp)
             }
 
             Spacer(modifier = Modifier.height(8.dp))
@@ -64,7 +67,7 @@ fun VibeServiceCard(
             Row(
                 verticalAlignment = Alignment.CenterVertically,
                 modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Alignment.SpaceBetween
+                horizontalArrangement = Arrangement.SpaceBetween
             ) {
                 Text(
                     text = if (launchMode == LaunchMode.NATIVE) "Native" else "WebView",
@@ -75,7 +78,7 @@ fun VibeServiceCard(
                     onCheckedChange = { isWeb ->
                         launchMode = if (isWeb) LaunchMode.WEBVIEW else LaunchMode.NATIVE
                     },
-                    enabled = service.isNativeSupported, // 네이티브 미지원시 비활성화
+                    enabled = service.isNativeSupported,
                     modifier = Modifier.scale(0.7f)
                 )
             }
@@ -83,7 +86,9 @@ fun VibeServiceCard(
     }
 }
 
-@Composable
-fun Modifier.scale(scale: Float): Modifier = this.then(
+/**
+ * Modifier.scale을 커스텀으로 구현하여 스위치 등의 크기를 조절합니다.
+ */
+fun Modifier.customScale(scale: Float): Modifier = this.then(
     Modifier.graphicsLayer(scaleX = scale, scaleY = scale)
 )
