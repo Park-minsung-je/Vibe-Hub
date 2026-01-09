@@ -8,10 +8,8 @@ import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
-import androidx.compose.foundation.lazy.LazyListState
 import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.items
-import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
@@ -38,7 +36,6 @@ import androidx.core.content.ContextCompat
 import androidx.hilt.navigation.compose.hiltViewModel
 import com.vibe.hub.core.ui.VibeBlue
 import com.vibe.hub.core.ui.VibePurple
-import com.vibe.hub.model.WeatherItem
 import kotlin.math.roundToInt
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -57,10 +54,9 @@ fun WeatherScreen(
     val toolbarHeight = 64.dp
     val toolbarHeightPx = with(density) { toolbarHeight.roundToPx().toFloat() }
     
-    // 상단바의 현재 오프셋 상태 (0: 완전 노출, -toolbarHeightPx: 완전 숨김)
+    // 상단바의 현재 오프셋 상태
     var toolbarOffsetHeightPx by remember { mutableFloatStateOf(0f) }
 
-    // 스크롤 감지를 위한 NestedScrollConnection
     val nestedScrollConnection = remember {
         object : NestedScrollConnection {
             override fun onPreScroll(available: Offset, source: NestedScrollSource): Offset {
@@ -87,7 +83,7 @@ fun WeatherScreen(
         modifier = Modifier
             .fillMaxSize()
             .background(backgroundBrush)
-            .nestedScroll(nestedScrollConnection) // 스크롤 이벤트 연결
+            .nestedScroll(nestedScrollConnection)
     ) {
         // 1. 메인 콘텐츠
         when (val state = uiState) {
@@ -109,12 +105,12 @@ fun WeatherScreen(
                 .statusBarsPadding()
                 .height(toolbarHeight)
                 .offset { IntOffset(x = 0, y = toolbarOffsetHeightPx.roundToInt()) },
-            color = Color.Transparent // 배경색은 투명하게 하여 일체감 유지
+            color = Color.Transparent
         ) {
             Box(
                 modifier = Modifier
                     .fillMaxSize()
-                    .padding(start = 64.dp), // 뒤로가기 버튼 공간 확보
+                    .padding(start = 64.dp),
                 contentAlignment = Alignment.CenterStart
             ) {
                 Text(
@@ -127,8 +123,8 @@ fun WeatherScreen(
             }
         }
 
-        // 3. 고정된 위치의 뒤로가기 버튼 (상태에 따라 플로팅으로 변함)
-        val progress = 1f - (toolbarOffsetHeightPx / -toolbarHeightPx) // 1.0(보임) -> 0.0(숨겨짐)
+        // 3. 고정된 위치의 뒤로가기 버튼
+        val progress = 1f - (toolbarOffsetHeightPx / -toolbarHeightPx)
         
         Box(
             modifier = Modifier
@@ -192,8 +188,6 @@ fun WeatherLuxuryContent(items: List<WeatherItem>) {
         }
     }
 }
-
-// --- 하위 Composable 및 Helper 함수들 (기존과 동일) ---
 
 @Composable
 fun LuxurySectionTitle(title: String) {
