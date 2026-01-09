@@ -1,6 +1,8 @@
 package com.vibe.hub.feature.home
 
 import android.view.ViewGroup
+import android.webkit.GeolocationPermissions
+import android.webkit.WebChromeClient
 import android.webkit.WebView
 import android.webkit.WebViewClient
 import androidx.compose.foundation.layout.fillMaxSize
@@ -31,7 +33,6 @@ fun WebViewScreen(
             )
         }
     ) { padding ->
-        // AndroidView: Compose 내에서 기존 안드로이드 View 시스템의 위젯을 사용할 때 쓰는 래퍼입니다.
         AndroidView(
             modifier = Modifier
                 .fillMaxSize()
@@ -42,17 +43,24 @@ fun WebViewScreen(
                         ViewGroup.LayoutParams.MATCH_PARENT,
                         ViewGroup.LayoutParams.MATCH_PARENT
                     )
-                    webViewClient = WebViewClient() // 외부 브라우저가 아닌 앱 내 웹뷰에서 페이지가 열리도록 함
+                    webViewClient = WebViewClient()
+                    webChromeClient = object : WebChromeClient() {
+                        override fun onGeolocationPermissionsShowPrompt(
+                            origin: String?,
+                            callback: GeolocationPermissions.Callback?
+                        ) {
+                            // 웹뷰 내 위치 권한 요청 허용
+                            callback?.invoke(origin, true, false)
+                        }
+                    }
                     settings.apply {
-                        javaScriptEnabled = true // 자바스크립트 허용
-                        domStorageEnabled = true // 로컬 스토리지 허용
+                        javaScriptEnabled = true
+                        domStorageEnabled = true
+                        databaseEnabled = true
+                        setGeolocationEnabled(true) // 위치 정보 활성화
                     }
                     loadUrl(url)
                 }
-            },
-            update = { webView ->
-                // URL이 변경되거나 업데이트가 필요할 때 호출되는 영역입니다.
-                // 이미 factory에서 loadUrl을 했으므로 별도 처리는 생략합니다.
             }
         )
     }

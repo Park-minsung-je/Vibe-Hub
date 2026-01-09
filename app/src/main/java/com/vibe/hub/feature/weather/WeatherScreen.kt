@@ -27,6 +27,13 @@ import com.vibe.hub.model.WeatherItem
 import com.vibe.hub.ui.theme.VibeBlue
 import com.vibe.hub.ui.theme.VibePurple
 
+import android.Manifest
+import android.content.pm.PackageManager
+import androidx.activity.compose.rememberLauncherForActivityResult
+import androidx.activity.result.contract.ActivityResultContracts
+import androidx.compose.ui.platform.LocalContext
+import androidx.core.content.ContextCompat
+
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun WeatherScreen(
@@ -36,9 +43,34 @@ fun WeatherScreen(
     viewModel: WeatherViewModel = hiltViewModel()
 ) {
     val uiState by viewModel.uiState.collectAsState()
+    val context = LocalContext.current
 
-    LaunchedEffect(lat, lon) {
-        viewModel.fetchWeather(lat, lon)
+    // 권한 요청 런처
+    val permissionLauncher = rememberLauncherForActivityResult(
+        ActivityResultContracts.RequestMultiplePermissions()
+    ) { permissions ->
+        val granted = permissions[Manifest.permission.ACCESS_FINE_LOCATION] == true ||
+                      permissions[Manifest.permission.ACCESS_COARSE_LOCATION] == true
+        if (granted) {
+            // 권한 승인 시 데이터 요청 (실제로는 현재 위치를 가져오는 로직이 필요하지만 우선 전달받은 lat, lon 사용)
+            viewModel.fetchWeather(lat, lon)
+        } else {
+            // 거부 시 처리 로직 (나중에 보강)
+        }
+    }
+
+    LaunchedEffect(Unit) {
+        val fineLocationPermission = ContextCompat.checkSelfPermission(context, Manifest.permission.ACCESS_FINE_LOCATION)
+        val coarseLocationPermission = ContextCompat.checkSelfPermission(context, Manifest.permission.ACCESS_COARSE_LOCATION)
+
+        if (fineLocationPermission == PackageManager.PERMISSION_GRANTED || coarseLocationPermission == PackageManager.PERMISSION_GRANTED) {
+            viewModel.fetchWeather(lat, lon)
+        } else {
+            permissionLauncher.launch(arrayOf(
+                Manifest.permission.ACCESS_FINE_LOCATION,
+                Manifest.permission.ACCESS_COARSE_LOCATION
+            ))
+        }
     }
 
     // 세련된 배경 그라데이션 (더 깊이 있는 색감)
@@ -52,10 +84,10 @@ fun WeatherScreen(
     Scaffold(
         topBar = {
             TopAppBar(
-                title = { Text("Weather Vibe", fontWeight = FontWeight.ExtraBold, letterSpacing = (-1).sp) },
+                title = { Text("Vibe Weather", fontWeight = FontWeight.ExtraBold, letterSpacing = (-1).sp) },
                 navigationIcon = {
                     IconButton(onClick = onBackClick) {
-                        Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Back")
+                        Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "뒤로가기")
                     }
                 },
                 colors = TopAppBarDefaults.topAppBarColors(containerColor = Color.Transparent)
@@ -76,7 +108,7 @@ fun WeatherScreen(
                     WeatherLuxuryContent(state.data)
                 }
                 is WeatherUiState.Error -> {
-                    Text(text = "Error: ${state.message}", modifier = Modifier.align(Alignment.Center))
+                    Text(text = "오류: ${state.message}", modifier = Modifier.align(Alignment.Center))
                 }
             }
         }
@@ -100,19 +132,19 @@ fun WeatherLuxuryContent(items: List<WeatherItem>) {
 
         // 시간별 예보 (유리창 효과 카드)
         item {
-            LuxurySectionTitle("Hourly Forecast")
+            LuxurySectionTitle("시간별 예보")
             LuxuryHourlySection(hourlyData)
         }
 
         // 상세 정보 (깔끔한 아이콘 리스트)
         item {
-            LuxurySectionTitle("Details")
+            LuxurySectionTitle("상세 기상 정보")
             LuxuryDetailGrid(currentData)
         }
 
         // 일자별 예보 (모던 리스트)
         item {
-            LuxurySectionTitle("7-Day Forecast")
+            LuxurySectionTitle("일자별 예보 (10일)")
             LuxuryDailyList()
         }
     }
@@ -147,7 +179,7 @@ fun LuxuryMainCard(items: List<WeatherItem>) {
             contentAlignment = Alignment.Center
         ) {
             Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                Text("Current Temperature", color = Color.White.copy(alpha = 0.7f), fontSize = 14.sp)
+                Text("현재 기온", color = Color.White.copy(alpha = 0.7f), fontSize = 14.sp)
                 Text(text = "${temp}°", fontSize = 80.sp, fontWeight = FontWeight.Black, color = Color.White)
                 Text(text = getSkyDescription(skyValue), color = Color.White, style = MaterialTheme.typography.titleMedium)
             }
@@ -158,7 +190,7 @@ fun LuxuryMainCard(items: List<WeatherItem>) {
 @Composable
 fun LuxuryHourlySection(groupedItems: List<List<WeatherItem>>) {
     LazyRow(
-        horizontalArrangement = Arrangement.spacedBy(16.dp)
+        horizontalArrangement = Arrangement.spacedBy(8.dp)
     ) {
         items(groupedItems) { timeGroup ->
             val time = timeGroup[0].fcstTime.substring(0, 2)
@@ -171,7 +203,7 @@ fun LuxuryHourlySection(groupedItems: List<List<WeatherItem>>) {
                     .padding(horizontal = 16.dp, vertical = 20.dp),
                 horizontalAlignment = Alignment.CenterHorizontally
             ) {
-                Text("${time}h", style = MaterialTheme.typography.labelMedium, color = VibePurple)
+                Text("${time}시", style = MaterialTheme.typography.labelMedium, color = VibePurple)
                 Text("🌤️", fontSize = 24.sp, modifier = Modifier.padding(vertical = 12.dp))
                 Text("${temp}°", fontWeight = FontWeight.Bold, fontSize = 16.sp)
             }
@@ -181,7 +213,7 @@ fun LuxuryHourlySection(groupedItems: List<List<WeatherItem>>) {
 
 @Composable
 fun LuxuryDetailGrid(items: List<WeatherItem>) {
-    val details = listOf("REH" to "Humidity", "WSD" to "Wind", "POP" to "Rain", "VEC" to "Direction")
+    val details = listOf("REH" to "습도", "WSD" to "풍속", "POP" to "강수확률", "VEC" to "풍향")
     
     Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
         details.chunked(2).forEach { rowItems ->
@@ -228,8 +260,8 @@ fun LuxuryDailyList() {
 }
 
 fun getSkyDescription(value: String): String = when(value) {
-    "1" -> "Clear"
-    "3" -> "Mostly Cloudy"
-    "4" -> "Cloudy"
-    else -> "Clear"
+    "1" -> "맑음"
+    "3" -> "구름 많음"
+    "4" -> "흐림"
+    else -> "맑음"
 }

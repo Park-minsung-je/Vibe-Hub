@@ -64,6 +64,7 @@ dependencies {
 
     // Image Loading
     implementation(libs.coil.compose)
+    implementation(libs.play.services.location)
 
     // DI (Hilt)
     implementation(libs.hilt.android)
