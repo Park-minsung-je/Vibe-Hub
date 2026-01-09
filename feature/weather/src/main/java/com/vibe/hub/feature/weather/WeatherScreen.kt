@@ -3,12 +3,19 @@ package com.vibe.hub.feature.weather
 import android.Manifest
 import android.content.pm.PackageManager
 import android.graphics.BlurMaskFilter
-import androidx.compose.animation.*
-import androidx.compose.animation.core.animateColorAsState
+import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.animation.animateColorAsState
+import androidx.compose.animation.core.animateDpAsState
 import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.animation.core.tween
+import androidx.compose.animation.fadeIn
+import androidx.compose.animation.fadeOut
+import androidx.compose.animation.scaleIn
+import androidx.compose.animation.scaleOut
+import androidx.compose.animation.slideInVertically
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.LazyRow
@@ -25,6 +32,7 @@ import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.alpha
+import androidx.compose.ui.draw.blur
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.drawBehind
 import androidx.compose.ui.draw.scale
@@ -143,7 +151,32 @@ fun WeatherScreen(
         ) {
             Box(modifier = Modifier.fillMaxSize()) {
                 if (lastData != null) {
-                    WeatherLuxuryContent(lastData!!, toolbarHeight)
+                    // [블러 효과 개선] 은은하고 부드럽게
+                    val blurRadius by animateDpAsState(
+                        targetValue = if (isRefreshing) 4.dp else 0.dp,
+                        animationSpec = tween(durationMillis = 500),
+                        label = "BlurRadius"
+                    )
+                    
+                    Box(
+                        modifier = Modifier
+                            .fillMaxSize()
+                            .blur(blurRadius)
+                    ) {
+                        WeatherLuxuryContent(lastData!!, toolbarHeight)
+                    }
+
+                    // 새로고침 중 터치 차단
+                    if (isRefreshing) {
+                        Box(
+                            modifier = Modifier
+                                .fillMaxSize()
+                                .clickable(
+                                    interactionSource = remember { MutableInteractionSource() },
+                                    indication = null
+                                ) { /* 터치 차단 */ }
+                        )
+                    }
                 } else if (uiState is WeatherUiState.Loading && !isRefreshing) {
                     CircularProgressIndicator(modifier = Modifier.align(Alignment.Center), color = VibePurple)
                 } else if (uiState is WeatherUiState.Error && lastData == null) {
