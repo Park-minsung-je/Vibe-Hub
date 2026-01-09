@@ -50,11 +50,8 @@ fun WeatherScreen(
     val context = LocalContext.current
     val density = LocalDensity.current
 
-    // 상단바 높이 설정
     val toolbarHeight = 64.dp
     val toolbarHeightPx = with(density) { toolbarHeight.roundToPx().toFloat() }
-    
-    // 상단바의 현재 오프셋 상태
     var toolbarOffsetHeightPx by remember { mutableFloatStateOf(0f) }
 
     val nestedScrollConnection = remember {
@@ -85,7 +82,6 @@ fun WeatherScreen(
             .background(backgroundBrush)
             .nestedScroll(nestedScrollConnection)
     ) {
-        // 1. 메인 콘텐츠
         when (val state = uiState) {
             is WeatherUiState.Loading -> {
                 CircularProgressIndicator(modifier = Modifier.align(Alignment.Center), color = VibePurple)
@@ -98,7 +94,6 @@ fun WeatherScreen(
             }
         }
 
-        // 2. 이동하는 상단바 (배경 및 타이틀)
         Surface(
             modifier = Modifier
                 .fillMaxWidth()
@@ -123,7 +118,6 @@ fun WeatherScreen(
             }
         }
 
-        // 3. 고정된 위치의 뒤로가기 버튼
         val progress = 1f - (toolbarOffsetHeightPx / -toolbarHeightPx)
         
         Box(
