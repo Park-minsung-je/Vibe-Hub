@@ -1,18 +1,18 @@
 [versions]
-agp = "8.7.0" # 최신 Android Studio (Koala/Ladybug) 호환
-kotlin = "2.0.0" # 최신 Kotlin
+agp = "8.13.0" # Android Studio Otter 호환 최신 버전
+kotlin = "2.1.0" # 최신 Kotlin
 coreKtx = "1.15.0"
 junit = "4.13.2"
 junitVersion = "1.2.1"
 espressoCore = "3.6.1"
 lifecycleRuntimeKtx = "2.8.7"
 activityCompose = "1.9.3"
-composeBom = "2024.10.01"
-navigationCompose = "2.8.3"
+composeBom = "2024.12.01"
+navigationCompose = "2.8.5"
 retrofit = "2.11.0"
 okhttp = "4.12.0"
 coil = "2.7.0"
-hilt = "2.51.1"
+hilt = "2.52"
 hiltNavigationCompose = "1.2.0"
 
 [libraries]
