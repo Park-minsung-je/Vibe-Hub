@@ -2,6 +2,7 @@ package com.vibe.hub.feature.weather
 
 import android.Manifest
 import android.content.pm.PackageManager
+import android.graphics.BlurMaskFilter
 import androidx.compose.animation.animateColorAsState
 import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.animation.core.tween
@@ -21,12 +22,15 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.draw.drawBehind
 import androidx.compose.ui.draw.scale
 import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.graphics.graphicsLayer
+import androidx.compose.ui.graphics.Paint
+import androidx.compose.ui.graphics.drawscope.drawIntoCanvas
+import androidx.compose.ui.graphics.toArgb
 import androidx.compose.ui.input.nestedscroll.NestedScrollConnection
 import androidx.compose.ui.input.nestedscroll.NestedScrollSource
 import androidx.compose.ui.input.nestedscroll.nestedScroll
@@ -137,55 +141,69 @@ fun WeatherScreen(
             )
         }
 
-        // 4. 뒤로가기 버튼 레이어 (절대 좌표 + 그림자 보호)
+        // 4. 뒤로가기 버튼 레이어 (Canvas 80dp 확장 버전)
         val buttonProgress = 1f - (animatedOffset / -toolbarHeightPx)
-        
-        // 엇박자 애니메이션 값 계산
-        val isFloated = buttonProgress < 0.2f
-        val iconColor by animateColorAsState(if (isFloated) Color.White else Color.Black, tween(200))
-        val bgAlpha by animateFloatAsState(if (isFloated) 1f else 0f, tween(300))
-        val bgScale by animateFloatAsState(if (isFloated) 1f else 0.8f, tween(300))
+        val iconColor by animateColorAsState(if (buttonProgress < 0.5f) Color.White else Color.Black)
+        val bgScale by animateFloatAsState(if (buttonProgress < 0.5f) 1f else 0.8f)
+        val bgAlpha by animateFloatAsState(if (buttonProgress < 0.2f) 1f else 0f)
 
         Box(
             modifier = Modifier
-                .fillMaxSize()
-                .zIndex(15f)
+                .statusBarsPadding()
+                .height(toolbarHeight)
+                .padding(start = 0.dp) // 넓은 박스 내에서 정렬하므로 패딩 0
+                .width(80.dp) // 그림자 공간 확보를 위한 넓은 너비
+                .zIndex(15f),
+            contentAlignment = Alignment.Center
         ) {
-            // 버튼 위치 계산: 상태바 높이 + (툴바 높이 - 버튼 높이) / 2
-            // -> 상단바의 수직 중앙 정렬
-            val statusBarHeight = WindowInsets.statusBars.asPaddingValues().calculateTopPadding()
-            val buttonSize = 40.dp
-            val topPadding = statusBarHeight + (toolbarHeight - buttonSize) / 2
-
+            // 거대한 투명 캔버스 + 커스텀 그림자
             Box(
                 modifier = Modifier
-                    .padding(start = 12.dp)
-                    .offset(y = topPadding) // 절대적인 Y축 위치 지정
-                    .size(buttonSize)
-                    .graphicsLayer { clip = false } // 그림자 잘림 방지 (필수)
+                    .size(80.dp) // 버튼(40dp)보다 2배 큼
+                    .scale(bgScale)
+                    .alpha(bgAlpha)
+                    .drawBehind {
+                        drawIntoCanvas { canvas ->
+                            val paint = Paint()
+                            val frameworkPaint = paint.asFrameworkPaint()
+                            frameworkPaint.color = android.graphics.Color.BLACK
+                            frameworkPaint.alpha = 50 // 그림자 진하기 조절
+                            frameworkPaint.maskFilter = BlurMaskFilter(20f, BlurMaskFilter.Blur.NORMAL) // 부드러운 흐림
+                            
+                            // 캔버스 중앙에 그림자 그리기
+                            // 오프셋 없이 정중앙에 배치 (요청하신 대로)
+                            val buttonRadius = 20.dp.toPx()
+                            canvas.drawCircle(
+                                center = Offset(size.width / 2, size.height / 2),
+                                radius = buttonRadius,
+                                paint = paint
+                            )
+                        }
+                    }
             ) {
-                // 플로팅 배경 (그림자 포함)
+                // 그라데이션 원형 배경 (중앙에 40dp로 배치)
                 Box(
                     modifier = Modifier
-                        .matchParentSize()
-                        .scale(bgScale)
-                        .alpha(bgAlpha)
-                        .shadow(elevation = 6.dp, shape = CircleShape, clip = false)
-                        .background(Brush.linearGradient(listOf(VibeBlue, VibePurple)), CircleShape)
+                        .size(40.dp)
+                        .align(Alignment.Center)
+                        .clip(CircleShape)
+                        .background(Brush.linearGradient(listOf(VibeBlue, VibePurple)))
                 )
-                
-                // 버튼 아이콘
-                IconButton(
-                    onClick = onBackClick,
-                    modifier = Modifier.matchParentSize()
-                ) {
-                    Icon(
-                        imageVector = Icons.AutoMirrored.Filled.ArrowBack,
-                        contentDescription = "뒤로가기",
-                        tint = iconColor,
-                        modifier = Modifier.size(24.dp)
-                    )
-                }
+            }
+            
+            // 실제 버튼 아이콘 (중앙 정렬)
+            IconButton(
+                onClick = onBackClick,
+                modifier = Modifier
+                    .size(48.dp) // 터치 영역 넉넉하게
+                    .align(Alignment.Center)
+            ) {
+                Icon(
+                    imageVector = Icons.AutoMirrored.Filled.ArrowBack,
+                    contentDescription = "뒤로가기",
+                    tint = iconColor,
+                    modifier = Modifier.size(24.dp)
+                )
             }
         }
 
