@@ -5,38 +5,29 @@ import android.webkit.GeolocationPermissions
 import android.webkit.WebChromeClient
 import android.webkit.WebView
 import android.webkit.WebViewClient
-import androidx.compose.foundation.layout.fillMaxSize
-import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.background
+import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material3.*
 import androidx.compose.runtime.Composable
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.unit.dp
 import androidx.compose.ui.viewinterop.AndroidView
 
-@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun WebViewScreen(
     url: String,
-    title: String,
     onBackClick: () -> Unit
 ) {
-    Scaffold(
-        topBar = {
-            TopAppBar(
-                title = { Text(text = title) },
-                navigationIcon = {
-                    IconButton(onClick = onBackClick) {
-                        Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "뒤로가기")
-                    }
-                }
-            )
-        }
-    ) { padding ->
+    // Scaffold 없이 Box를 사용하여 전체 화면을 구성합니다.
+    Box(modifier = Modifier.fillMaxSize()) {
+        // 1. 전체 화면 WebView
         AndroidView(
-            modifier = Modifier
-                .fillMaxSize()
-                .padding(padding),
+            modifier = Modifier.fillMaxSize(),
             factory = { ctx ->
                 WebView(ctx).apply {
                     layoutParams = ViewGroup.LayoutParams(
@@ -57,21 +48,32 @@ fun WebViewScreen(
                         domStorageEnabled = true
                         setGeolocationEnabled(true)
                         
-                        // --- PC 모드 설정 추가 ---
-                        // 1. Viewport 설정: 페이지의 viewport 메타 태그를 무시하거나 최적화합니다.
+                        // 해상도 조정을 위해 최소한의 설정만 유지합니다.
                         useWideViewPort = true
-                        // 2. Overview 모드: 페이지를 화면 너비에 맞춰 축소하여 로드합니다.
                         loadWithOverviewMode = true
-                        // 3. 줌 지원: 필요 시 사용자가 확대/축소할 수 있게 합니다.
-                        builtInZoomControls = true
-                        displayZoomControls = false
-                        
-                        // 4. User Agent 위장: 서버에게 PC 브라우저라고 속입니다. (Chrome Desktop 버전)
-                        userAgentString = "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36"
                     }
                     loadUrl(url)
                 }
             }
         )
+
+        // 2. 플로팅 뒤로가기 버튼 (좌측 상단)
+        Surface(
+            modifier = Modifier
+                .padding(top = 48.dp, start = 16.dp) // 상태바 높이 고려
+                .size(40.dp)
+                .align(Alignment.TopStart),
+            shape = CircleShape,
+            color = Color.Black.copy(alpha = 0.3f), // 반투명 배경
+            contentColor = Color.White
+        ) {
+            IconButton(onClick = onBackClick) {
+                Icon(
+                    imageVector = Icons.AutoMirrored.Filled.ArrowBack,
+                    contentDescription = "뒤로가기",
+                    modifier = Modifier.size(24.dp)
+                )
+            }
+        }
     }
 }
