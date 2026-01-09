@@ -21,6 +21,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.draw.scale
 import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Brush
@@ -39,7 +40,6 @@ import androidx.core.content.ContextCompat
 import androidx.hilt.navigation.compose.hiltViewModel
 import com.vibe.hub.core.ui.VibeBlue
 import com.vibe.hub.core.ui.VibePurple
-import com.vibe.hub.model.WeatherItem
 import kotlin.math.roundToInt
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -64,15 +64,16 @@ fun WeatherScreen(
     
     val animatedOffset by animateFloatAsState(
         targetValue = if (isToolbarVisible) 0f else -toolbarHeightPx,
-        animationSpec = tween(durationMillis = 300),
+        animationSpec = tween(durationMillis = 350),
         label = "ToolbarOffset"
     )
 
     val nestedScrollConnection = remember {
         object : NestedScrollConnection {
             override fun onPreScroll(available: Offset, source: NestedScrollSource): Offset {
-                if (available.y < -15) isToolbarVisible = false
-                else if (available.y > 15) isToolbarVisible = true
+                // 천천히 움직여도 방향만 명확하면 즉시 반응 (threshold를 1 정도로 낮춤)
+                if (available.y < -1f) isToolbarVisible = false
+                else if (available.y > 1f) isToolbarVisible = true
                 return Offset.Zero
             }
         }
@@ -106,7 +107,7 @@ fun WeatherScreen(
             }
         }
 
-        // 2. 상단 상태바 가림막
+        // 2. 상단 상태바 영역
         Box(
             modifier = Modifier
                 .fillMaxWidth()
@@ -139,31 +140,34 @@ fun WeatherScreen(
             }
         }
 
-        // 4. 뒤로가기 버튼
+        // 4. 뒤로가기 버튼 (그림자 잘림 방지 및 자연스러운 전환)
         val buttonProgress = 1f - (animatedOffset / -toolbarHeightPx)
         val iconColor by animateColorAsState(if (buttonProgress < 0.5f) Color.White else Color.Black)
+        // 버튼 배경 스케일 애니메이션 (작아졌다 커졌다 하며 전환)
+        val bgScale by animateFloatAsState(if (buttonProgress < 0.5f) 1f else 0.8f)
 
         Box(
             modifier = Modifier
                 .padding(top = WindowInsets.statusBars.asPaddingValues().calculateTopPadding())
                 .height(toolbarHeight)
-                .padding(start = 12.dp)
-                .width(48.dp)
+                .width(72.dp) // 너비를 넓혀서 그림자가 보일 공간 확보
                 .zIndex(15f),
             contentAlignment = Alignment.Center
         ) {
+            // 플로팅 배경 (공간 확보를 위해 size 외에 별도 조절)
             Box(
                 modifier = Modifier
                     .size(40.dp)
+                    .scale(bgScale)
                     .alpha(1f - (buttonProgress.coerceIn(0f, 1f)))
-                    .shadow(elevation = 6.dp, shape = CircleShape)
+                    .shadow(elevation = 8.dp, shape = CircleShape, clip = false) // 그림자 여유
                     .clip(CircleShape)
                     .background(Brush.linearGradient(listOf(VibeBlue, VibePurple)))
             )
             
             IconButton(
                 onClick = onBackClick,
-                modifier = Modifier.size(40.dp)
+                modifier = Modifier.size(48.dp) // 터치 영역 확장
             ) {
                 Icon(
                     imageVector = Icons.AutoMirrored.Filled.ArrowBack,
@@ -174,7 +178,7 @@ fun WeatherScreen(
             }
         }
 
-        // 5. 하단 네비게이션 바 가림막 (확실하게 bottomColor 적용)
+        // 5. 하단 네비게이션 바 가림막
         Box(
             modifier = Modifier
                 .fillMaxWidth()
