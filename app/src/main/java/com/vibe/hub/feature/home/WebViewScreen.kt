@@ -49,7 +49,6 @@ fun WebViewScreen(
                             origin: String?,
                             callback: GeolocationPermissions.Callback?
                         ) {
-                            // 이미 앱 레벨에서 권한을 확인했으므로 허용 상태를 전달합니다.
                             callback?.invoke(origin, true, false)
                         }
                     }
@@ -57,6 +56,18 @@ fun WebViewScreen(
                         javaScriptEnabled = true
                         domStorageEnabled = true
                         setGeolocationEnabled(true)
+                        
+                        // --- PC 모드 설정 추가 ---
+                        // 1. Viewport 설정: 페이지의 viewport 메타 태그를 무시하거나 최적화합니다.
+                        useWideViewPort = true
+                        // 2. Overview 모드: 페이지를 화면 너비에 맞춰 축소하여 로드합니다.
+                        loadWithOverviewMode = true
+                        // 3. 줌 지원: 필요 시 사용자가 확대/축소할 수 있게 합니다.
+                        builtInZoomControls = true
+                        displayZoomControls = false
+                        
+                        // 4. User Agent 위장: 서버에게 PC 브라우저라고 속입니다. (Chrome Desktop 버전)
+                        userAgentString = "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36"
                     }
                     loadUrl(url)
                 }
