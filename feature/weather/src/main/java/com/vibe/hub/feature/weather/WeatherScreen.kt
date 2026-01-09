@@ -2,8 +2,6 @@ package com.vibe.hub.feature.weather
 
 import android.Manifest
 import android.content.pm.PackageManager
-import androidx.activity.compose.rememberLauncherForActivityResult
-import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
@@ -72,7 +70,6 @@ fun WeatherScreen(
         }
     }
 
-    // 화면 전체를 채우는 그라데이션 배경
     val backgroundBrush = Brush.verticalGradient(
         colors = listOf(Color(0xFFE0F2F1), Color(0xFFF3E5F5))
     )
@@ -80,46 +77,44 @@ fun WeatherScreen(
     Box(
         modifier = Modifier
             .fillMaxSize()
-            .background(backgroundBrush) // 꽉 채워진 배경
+            .background(backgroundBrush)
             .nestedScroll(nestedScrollConnection)
     ) {
-        // 1. 메인 콘텐츠 (배경 위에 올라감)
         when (val state = uiState) {
             is WeatherUiState.Loading -> {
                 CircularProgressIndicator(modifier = Modifier.align(Alignment.Center), color = VibePurple)
             }
             is WeatherUiState.Success -> {
-                WeatherLuxuryContent(state.data)
+                WeatherLuxuryContent(state.data, toolbarHeight)
             }
             is WeatherUiState.Error -> {
                 Text(text = "오류: ${state.message}", modifier = Modifier.align(Alignment.Center))
             }
         }
 
-        // 2. 상단바 (통째로 움직임)
-        // Surface 대신 Box를 사용하고 투명도를 조절하여 배경 그라데이션과 일체감을 유지합니다.
-        Box(
+        Surface(
             modifier = Modifier
                 .fillMaxWidth()
                 .statusBarsPadding()
                 .height(toolbarHeight)
-                .offset { IntOffset(x = 0, y = toolbarOffsetHeightPx.roundToInt()) }
-                .background(Color.White.copy(alpha = (1f + (toolbarOffsetHeightPx / toolbarHeightPx)) * 0.8f)) // 서서히 사라지는 투명 배경
+                .offset { IntOffset(x = 0, y = toolbarOffsetHeightPx.roundToInt()) },
+            color = Color.White.copy(alpha = 0.7f),
+            shadowElevation = if (toolbarOffsetHeightPx == 0f) 0.dp else 4.dp
         ) {
-            Text(
-                text = "Vibe Weather",
-                fontWeight = FontWeight.ExtraBold,
-                fontSize = 20.sp,
-                modifier = Modifier
-                    .align(Alignment.CenterStart)
-                    .padding(start = 64.dp),
-                color = Color.Black
-            )
+            Box(
+                modifier = Modifier.fillMaxSize().padding(start = 64.dp),
+                contentAlignment = Alignment.CenterStart
+            ) {
+                Text(
+                    text = "Vibe Weather",
+                    fontWeight = FontWeight.ExtraBold,
+                    fontSize = 20.sp,
+                    color = Color.Black
+                )
+            }
         }
 
-        // 3. 고정된 뒤로가기 버튼
-        val progress = 1f - (toolbarOffsetHeightPx / -toolbarHeightPx)
-        
+        val isFloating = toolbarOffsetHeightPx < -toolbarHeightPx / 2
         Box(
             modifier = Modifier
                 .statusBarsPadding()
@@ -131,14 +126,11 @@ fun WeatherScreen(
             Box(
                 modifier = Modifier
                     .size(40.dp)
-                    .shadow(elevation = if (progress < 0.5f) 8.dp else 0.dp, shape = CircleShape)
+                    .shadow(elevation = if (isFloating) 8.dp else 0.dp, shape = CircleShape)
                     .clip(CircleShape)
                     .background(
-                        if (progress < 0.5f) {
-                            Brush.linearGradient(colors = listOf(VibeBlue, VibePurple))
-                        } else {
-                            Brush.linearGradient(colors = listOf(Color.Transparent, Color.Transparent))
-                        }
+                        if (isFloating) Brush.linearGradient(listOf(VibeBlue, VibePurple))
+                        else Brush.linearGradient(listOf(Color.Transparent, Color.Transparent))
                     )
                     .clickable { onBackClick() },
                 contentAlignment = Alignment.Center
@@ -146,25 +138,33 @@ fun WeatherScreen(
                 Icon(
                     imageVector = Icons.AutoMirrored.Filled.ArrowBack,
                     contentDescription = "뒤로가기",
-                    tint = if (progress < 0.5f) Color.White else Color.Black,
+                    tint = if (isFloating) Color.White else Color.Black,
                     modifier = Modifier.size(24.dp)
                 )
             }
         }
+
+        Spacer(
+            modifier = Modifier
+                .fillMaxWidth()
+                .windowInsetsBottomHeight(WindowInsets.navigationBars)
+                .align(Alignment.BottomCenter)
+                .background(Color.White.copy(alpha = 0.5f))
+        )
     }
 }
 
 @Composable
-fun WeatherLuxuryContent(items: List<WeatherItem>) {
+fun WeatherLuxuryContent(items: List<WeatherItem>, toolbarHeight: androidx.compose.ui.unit.Dp) {
     val currentData = items.filter { it.fcstDate == items[0].fcstDate && it.fcstTime == items[0].fcstTime }
     val hourlyData = items.groupBy { "${it.fcstDate}${it.fcstTime}" }.values.toList()
 
     LazyColumn(
         modifier = Modifier.fillMaxSize(),
         contentPadding = PaddingValues(
-            top = WindowInsets.statusBars.asPaddingValues().calculateTopPadding() + 64.dp, 
-            start = 20.dp, 
-            end = 20.dp, 
+            top = WindowInsets.statusBars.asPaddingValues().calculateTopPadding() + toolbarHeight + 16.dp,
+            start = 20.dp,
+            end = 20.dp,
             bottom = WindowInsets.navigationBars.asPaddingValues().calculateBottomPadding() + 24.dp
         ),
         verticalArrangement = Arrangement.spacedBy(24.dp)
@@ -184,8 +184,6 @@ fun WeatherLuxuryContent(items: List<WeatherItem>) {
         }
     }
 }
-
-// ... 하위 Composable 함수들 유지 (LuxurySectionTitle, LuxuryMainCard, 등) ...
 
 @Composable
 fun LuxurySectionTitle(title: String) {
