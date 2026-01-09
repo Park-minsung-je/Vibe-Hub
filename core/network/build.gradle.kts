@@ -17,6 +17,7 @@ android {
 }
 
 dependencies {
+    implementation(fileTree(mapOf("dir" to "libs", "include" to listOf("*.jar"))))
     api(libs.retrofit)
     api(libs.retrofit.converter.gson)
     api(libs.okhttp)

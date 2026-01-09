@@ -15,8 +15,8 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.vibe.hub.model.LaunchMode
 import com.vibe.hub.model.VibeService
-import com.vibe.hub.ui.theme.VibeBlue
-import com.vibe.hub.ui.theme.VibePurple
+import com.vibe.hub.core.ui.VibeBlue
+import com.vibe.hub.core.ui.VibePurple
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -31,10 +31,8 @@ fun HomeScreen(
             iconUrl = "",
             webUrl = "https://vibe.weather.ilf.kr"
         ),
-        // 향후 추가될 서비스들을 위한 공간
     )
 
-    // 배경 그라데이션
     val backgroundBrush = Brush.verticalGradient(
         colors = listOf(VibeBlue.copy(alpha = 0.1f), Color.White)
     )
