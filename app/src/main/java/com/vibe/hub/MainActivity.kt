@@ -1,7 +1,6 @@
 package com.vibe.hub
 
 import android.Manifest
-import android.app.Activity
 import android.content.pm.PackageManager
 import android.os.Bundle
 import android.widget.Toast
@@ -15,9 +14,7 @@ import androidx.compose.runtime.*
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.toArgb
 import androidx.compose.ui.platform.LocalContext
-import androidx.compose.ui.platform.LocalView
 import androidx.core.content.ContextCompat
-import androidx.core.view.WindowCompat
 import androidx.navigation.NavType
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
@@ -29,7 +26,6 @@ import com.vibe.hub.feature.home.HomeScreen
 import com.vibe.hub.feature.home.WebViewScreen
 import com.vibe.hub.feature.weather.WeatherScreen
 import com.vibe.hub.model.LaunchMode
-import com.vibe.hub.model.VibeService
 import com.vibe.hub.ui.theme.VibeHubTheme
 import dagger.hilt.android.AndroidEntryPoint
 import java.net.URLEncoder
@@ -42,7 +38,7 @@ class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         
-        // 1. Android 15+ 강제 정책에 따른 초기 스타일 설정
+        // 1. 앱이 켜지는 즉시 시스템 바 아이콘을 어둡게(Light Style) 고정
         enableEdgeToEdge(
             statusBarStyle = SystemBarStyle.light(Color.Transparent.toArgb(), Color.Transparent.toArgb()),
             navigationBarStyle = SystemBarStyle.light(Color.Transparent.toArgb(), Color.Transparent.toArgb())
@@ -51,22 +47,6 @@ class MainActivity : ComponentActivity() {
         fusedLocationClient = LocationServices.getFusedLocationProviderClient(this)
         
         setContent {
-            val view = LocalView.current
-            
-            // 2. Compose 렌더링 시점에 앱 전역 아이콘 색상을 어둡게(Dark) 강제 고정
-            if (!view.isInEditMode) {
-                DisposableEffect(Unit) {
-                    val window = (view.context as Activity).window
-                    val controller = WindowCompat.getInsetsController(window, view)
-                    
-                    // 모든 화면에서 아이콘 색상을 어둡게 표시
-                    controller.isAppearanceLightStatusBars = true
-                    controller.isAppearanceLightNavigationBars = true
-
-                    onDispose {}
-                }
-            }
-
             VibeHubTheme {
                 VibeHubNavigation(fusedLocationClient)
             }
@@ -79,7 +59,7 @@ fun VibeHubNavigation(fusedLocationClient: FusedLocationProviderClient) {
     val navController = rememberNavController()
     val context = LocalContext.current
     
-    var pendingService by remember { mutableStateOf<Pair<VibeService, LaunchMode>?>(null) }
+    var pendingService by remember { mutableStateOf<Pair<com.vibe.hub.model.VibeService, LaunchMode>?>(null) }
 
     val permissionLauncher = rememberLauncherForActivityResult(
         ActivityResultContracts.RequestMultiplePermissions()
@@ -145,7 +125,7 @@ private fun navigateToService(
     navController: androidx.navigation.NavHostController,
     fusedLocationClient: FusedLocationProviderClient,
     context: android.content.Context,
-    service: VibeService,
+    service: com.vibe.hub.model.VibeService,
     mode: LaunchMode
 ) {
     if (mode == LaunchMode.WEBVIEW) {
