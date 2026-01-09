@@ -1,5 +1,9 @@
 package com.vibe.hub.feature.weather
 
+import android.Manifest
+import android.content.pm.PackageManager
+import androidx.activity.compose.rememberLauncherForActivityResult
+import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
@@ -19,13 +23,14 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.core.content.ContextCompat
 import androidx.hilt.navigation.compose.hiltViewModel
-import com.vibe.hub.model.WeatherItem
-import com.vibe.hub.ui.theme.VibeBlue
-import com.vibe.hub.ui.theme.VibePurple
+import com.vibe.hub.core.ui.VibeBlue
+import com.vibe.hub.core.ui.VibePurple
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -35,11 +40,32 @@ fun WeatherScreen(
     onBackClick: () -> Unit,
     viewModel: WeatherViewModel = hiltViewModel()
 ) {
+    // ... 기존 로직 동일 (VibeBlue, VibePurple 임포트만 변경됨)
     val uiState by viewModel.uiState.collectAsState()
+    val context = LocalContext.current
 
-    // 화면 진입 시 즉시 데이터 요청 (권한은 이미 메인 화면에서 확보됨)
-    LaunchedEffect(lat, lon) {
-        viewModel.fetchWeather(lat, lon)
+    val permissionLauncher = rememberLauncherForActivityResult(
+        ActivityResultContracts.RequestMultiplePermissions()
+    ) { permissions ->
+        val granted = permissions[Manifest.permission.ACCESS_FINE_LOCATION] == true ||
+                      permissions[Manifest.permission.ACCESS_COARSE_LOCATION] == true
+        if (granted) {
+            viewModel.fetchWeather(lat, lon)
+        }
+    }
+
+    LaunchedEffect(Unit) {
+        val fineLocationPermission = ContextCompat.checkSelfPermission(context, Manifest.permission.ACCESS_FINE_LOCATION)
+        val coarseLocationPermission = ContextCompat.checkSelfPermission(context, Manifest.permission.ACCESS_COARSE_LOCATION)
+
+        if (fineLocationPermission == PackageManager.PERMISSION_GRANTED || coarseLocationPermission == PackageManager.PERMISSION_GRANTED) {
+            viewModel.fetchWeather(lat, lon)
+        } else {
+            permissionLauncher.launch(arrayOf(
+                Manifest.permission.ACCESS_FINE_LOCATION,
+                Manifest.permission.ACCESS_COARSE_LOCATION
+            ))
+        }
     }
 
     val backgroundBrush = Brush.verticalGradient(
