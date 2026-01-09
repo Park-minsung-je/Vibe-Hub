@@ -1,4 +1,4 @@
-package com.vibe.hub.ui.theme
+package com.vibe.hub.core.ui
 
 import android.app.Activity
 import android.os.Build
@@ -30,7 +30,6 @@ private val LightColorScheme = lightColorScheme(
 @Composable
 fun VibeHubTheme(
     darkTheme: Boolean = isSystemInDarkTheme(),
-    // 다이나믹 컬러 지원 (Android 12+)
     dynamicColor: Boolean = true,
     content: @Composable () -> Unit
 ) {
@@ -47,12 +46,10 @@ fun VibeHubTheme(
     if (!view.isInEditMode) {
         SideEffect {
             val window = (view.context as Activity).window
-            // Edge-to-Edge를 위해 투명하게 유지
             window.statusBarColor = android.graphics.Color.TRANSPARENT
             window.navigationBarColor = android.graphics.Color.TRANSPARENT
             
             val insetsController = WindowCompat.getInsetsController(window, view)
-            // 밝은 배경(또는 라이트 모드)일 때 아이콘을 어둡게 설정
             insetsController.isAppearanceLightStatusBars = !darkTheme
             insetsController.isAppearanceLightNavigationBars = !darkTheme
         }

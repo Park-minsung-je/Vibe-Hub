@@ -1,4 +1,4 @@
-package com.vibe.hub.ui.theme
+package com.vibe.hub.core.ui
 
 import androidx.compose.ui.graphics.Color
 

@@ -22,11 +22,12 @@ import androidx.navigation.compose.rememberNavController
 import androidx.navigation.navArgument
 import com.google.android.gms.location.FusedLocationProviderClient
 import com.google.android.gms.location.LocationServices
+import com.vibe.hub.core.ui.VibeHubTheme
 import com.vibe.hub.feature.home.HomeScreen
 import com.vibe.hub.feature.home.WebViewScreen
 import com.vibe.hub.feature.weather.WeatherScreen
 import com.vibe.hub.model.LaunchMode
-import com.vibe.hub.ui.theme.VibeHubTheme
+import com.vibe.hub.model.VibeService
 import dagger.hilt.android.AndroidEntryPoint
 import java.net.URLEncoder
 import java.nio.charset.StandardCharsets
@@ -38,7 +39,6 @@ class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         
-        // 1. 앱이 켜지는 즉시 시스템 바 아이콘을 어둡게(Light Style) 고정
         enableEdgeToEdge(
             statusBarStyle = SystemBarStyle.light(Color.Transparent.toArgb(), Color.Transparent.toArgb()),
             navigationBarStyle = SystemBarStyle.light(Color.Transparent.toArgb(), Color.Transparent.toArgb())
@@ -59,7 +59,7 @@ fun VibeHubNavigation(fusedLocationClient: FusedLocationProviderClient) {
     val navController = rememberNavController()
     val context = LocalContext.current
     
-    var pendingService by remember { mutableStateOf<Pair<com.vibe.hub.model.VibeService, LaunchMode>?>(null) }
+    var pendingService by remember { mutableStateOf<Pair<VibeService, LaunchMode>?>(null) }
 
     val permissionLauncher = rememberLauncherForActivityResult(
         ActivityResultContracts.RequestMultiplePermissions()
@@ -125,7 +125,7 @@ private fun navigateToService(
     navController: androidx.navigation.NavHostController,
     fusedLocationClient: FusedLocationProviderClient,
     context: android.content.Context,
-    service: com.vibe.hub.model.VibeService,
+    service: VibeService,
     mode: LaunchMode
 ) {
     if (mode == LaunchMode.WEBVIEW) {
