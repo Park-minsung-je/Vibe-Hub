@@ -52,10 +52,10 @@ fun WeatherScreen(
     Scaffold(
         topBar = {
             TopAppBar(
-                title = { Text("Weather Vibe", fontWeight = FontWeight.ExtraBold, letterSpacing = (-1).sp) },
+                title = { Text("Vibe Weather", fontWeight = FontWeight.ExtraBold, letterSpacing = (-1).sp) },
                 navigationIcon = {
                     IconButton(onClick = onBackClick) {
-                        Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Back")
+                        Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "뒤로가기")
                     }
                 },
                 colors = TopAppBarDefaults.topAppBarColors(containerColor = Color.Transparent)
@@ -76,7 +76,7 @@ fun WeatherScreen(
                     WeatherLuxuryContent(state.data)
                 }
                 is WeatherUiState.Error -> {
-                    Text(text = "Error: ${state.message}", modifier = Modifier.align(Alignment.Center))
+                    Text(text = "오류: ${state.message}", modifier = Modifier.align(Alignment.Center))
                 }
             }
         }
@@ -100,19 +100,19 @@ fun WeatherLuxuryContent(items: List<WeatherItem>) {
 
         // 시간별 예보 (유리창 효과 카드)
         item {
-            LuxurySectionTitle("Hourly Forecast")
+            LuxurySectionTitle("시간별 예보")
             LuxuryHourlySection(hourlyData)
         }
 
         // 상세 정보 (깔끔한 아이콘 리스트)
         item {
-            LuxurySectionTitle("Details")
+            LuxurySectionTitle("상세 기상 정보")
             LuxuryDetailGrid(currentData)
         }
 
         // 일자별 예보 (모던 리스트)
         item {
-            LuxurySectionTitle("7-Day Forecast")
+            LuxurySectionTitle("일자별 예보 (10일)")
             LuxuryDailyList()
         }
     }
@@ -147,7 +147,7 @@ fun LuxuryMainCard(items: List<WeatherItem>) {
             contentAlignment = Alignment.Center
         ) {
             Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                Text("Current Temperature", color = Color.White.copy(alpha = 0.7f), fontSize = 14.sp)
+                Text("현재 기온", color = Color.White.copy(alpha = 0.7f), fontSize = 14.sp)
                 Text(text = "${temp}°", fontSize = 80.sp, fontWeight = FontWeight.Black, color = Color.White)
                 Text(text = getSkyDescription(skyValue), color = Color.White, style = MaterialTheme.typography.titleMedium)
             }
@@ -171,7 +171,7 @@ fun LuxuryHourlySection(groupedItems: List<List<WeatherItem>>) {
                     .padding(horizontal = 16.dp, vertical = 20.dp),
                 horizontalAlignment = Alignment.CenterHorizontally
             ) {
-                Text("${time}h", style = MaterialTheme.typography.labelMedium, color = VibePurple)
+                Text("${time}시", style = MaterialTheme.typography.labelMedium, color = VibePurple)
                 Text("🌤️", fontSize = 24.sp, modifier = Modifier.padding(vertical = 12.dp))
                 Text("${temp}°", fontWeight = FontWeight.Bold, fontSize = 16.sp)
             }
@@ -181,7 +181,7 @@ fun LuxuryHourlySection(groupedItems: List<List<WeatherItem>>) {
 
 @Composable
 fun LuxuryDetailGrid(items: List<WeatherItem>) {
-    val details = listOf("REH" to "Humidity", "WSD" to "Wind", "POP" to "Rain", "VEC" to "Direction")
+    val details = listOf("REH" to "습도", "WSD" to "풍속", "POP" to "강수확률", "VEC" to "풍향")
     
     Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
         details.chunked(2).forEach { rowItems ->
@@ -228,8 +228,8 @@ fun LuxuryDailyList() {
 }
 
 fun getSkyDescription(value: String): String = when(value) {
-    "1" -> "Clear"
-    "3" -> "Mostly Cloudy"
-    "4" -> "Cloudy"
-    else -> "Clear"
+    "1" -> "맑음"
+    "3" -> "구름 많음"
+    "4" -> "흐림"
+    else -> "맑음"
 }
