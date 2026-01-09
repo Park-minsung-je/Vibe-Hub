@@ -14,9 +14,7 @@ import androidx.compose.runtime.*
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.toArgb
 import androidx.compose.ui.platform.LocalContext
-import androidx.compose.ui.platform.LocalView
 import androidx.core.content.ContextCompat
-import androidx.core.view.WindowCompat
 import androidx.navigation.NavType
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
@@ -41,14 +39,17 @@ class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         
-        // Edge-to-Edge 스타일 명시적 설정 (아이콘 색상 어둡게 고정)
+        /**
+         * Android 15 (API 35) 이상에서 Edge-to-Edge 설정이 변경되었습니다.
+         * SystemBarStyle.light()를 사용하면 배경이 밝을 때 아이콘을 어둡게 처리합니다.
+         */
         enableEdgeToEdge(
             statusBarStyle = SystemBarStyle.light(
-                Color.Transparent.toArgb(), 
-                Color.Transparent.toArgb()
+                Color.Transparent.toArgb(), // 스크림(그림자) 색상
+                Color.Transparent.toArgb()  // 어두운 테마에서의 스크림 색상
             ),
             navigationBarStyle = SystemBarStyle.light(
-                Color.Transparent.toArgb(), 
+                Color.Transparent.toArgb(),
                 Color.Transparent.toArgb()
             )
         )
