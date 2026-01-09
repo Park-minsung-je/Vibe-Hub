@@ -126,14 +126,16 @@ fun WeatherScreen(
                 viewModel.fetchWeather(lat, lon)
             },
             state = refreshState,
-            modifier = Modifier
-                .fillMaxSize()
-                .padding(top = statusBarHeight + toolbarHeight),
+            modifier = Modifier.fillMaxSize(),
             indicator = {
                 PullToRefreshDefaults.Indicator(
                     state = refreshState,
                     isRefreshing = isRefreshing,
-                    modifier = Modifier.align(Alignment.TopCenter),
+                    modifier = Modifier
+                        .align(Alignment.TopCenter)
+                        // 인디케이터 위치를 상단바 오프셋에 맞춰 동적으로 조절
+                        // 상단바가 올라가면 인디케이터 시작점도 위로 올라감 -> 자연스러운 위치
+                        .padding(top = statusBarHeight + toolbarHeight + (animatedOffset.dp / density.density)), // dp 변환 필요
                     containerColor = Color.White,
                     color = VibePurple
                 )
@@ -153,6 +155,7 @@ fun WeatherScreen(
             }
         }
 
+        // 2. 상단 상태바 영역 가림막 (고정)
         Box(
             modifier = Modifier
                 .fillMaxWidth()
@@ -161,6 +164,8 @@ fun WeatherScreen(
                 .zIndex(10f)
         )
 
+        // 3. 애니메이션 상단바 (타이틀)
+        // offset을 사용하여 실제로 위로 이동시킴. 이동하면 그 자리는 비워져서 뒤의 리스트가 보임.
         Box(
             modifier = Modifier
                 .fillMaxWidth()
@@ -181,11 +186,13 @@ fun WeatherScreen(
             )
         }
 
+        // 4. 뒤로가기 버튼 레이어 (Canvas 직접 그리기 유지)
         val buttonProgress = 1f - (animatedOffset / -toolbarHeightPx)
-        val isFloated = buttonProgress < 0.2f 
-        val bgAlpha by animateFloatAsState(if (isFloated) 1f else 0f, tween(300), label = "BgAlpha")
-        val iconColor by animateColorAsState(if (isFloated) Color.White else Color.Black, tween(300), label = "IconColor")
+        
+        val isFloated = buttonProgress < 0.2f
+        val iconColor by animateColorAsState(if (isFloated) Color.White else Color.Black, tween(200), label = "IconColor")
         val bgScale by animateFloatAsState(if (isFloated) 1f else 0.8f, tween(300), label = "BgScale")
+        val bgAlpha by animateFloatAsState(if (isFloated) 1f else 0f, tween(300), label = "BgAlpha")
 
         Box(
             modifier = Modifier
@@ -240,6 +247,7 @@ fun WeatherScreen(
             }
         }
 
+        // 5. 하단 고정 가림막
         Box(
             modifier = Modifier
                 .fillMaxWidth()
@@ -251,6 +259,7 @@ fun WeatherScreen(
     }
 }
 
+// ... 하위 컴포저블 동일 유지 (WeatherLuxuryContent 등) ...
 @Composable
 fun WeatherLuxuryContent(items: List<WeatherItem>, toolbarHeight: Dp) {
     val currentData = items.filter { it.fcstDate == items[0].fcstDate && it.fcstTime == items[0].fcstTime }
@@ -262,7 +271,9 @@ fun WeatherLuxuryContent(items: List<WeatherItem>, toolbarHeight: Dp) {
     LazyColumn(
         modifier = Modifier.fillMaxSize(),
         contentPadding = PaddingValues(
-            top = 16.dp,
+            // 상단바 높이만큼 패딩을 주되, 스크롤 시 이 영역 위로 컨텐츠가 올라가는 것은 자연스러운 현상입니다.
+            // 상단바가 사라지면 이 패딩 영역에 리스트 내용이 보이게 됩니다.
+            top = WindowInsets.statusBars.asPaddingValues().calculateTopPadding() + toolbarHeight + 16.dp,
             start = 20.dp, 
             end = 20.dp, 
             bottom = WindowInsets.navigationBars.asPaddingValues().calculateBottomPadding() + 24.dp
