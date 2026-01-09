@@ -5,6 +5,7 @@ import android.content.pm.PackageManager
 import android.graphics.BlurMaskFilter
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.animateColorAsState
+import androidx.compose.animation.core.animateDpAsState
 import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.animation.core.tween
 import androidx.compose.animation.fadeIn
@@ -12,7 +13,6 @@ import androidx.compose.animation.fadeOut
 import androidx.compose.animation.scaleIn
 import androidx.compose.animation.scaleOut
 import androidx.compose.animation.slideInVertically
-import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
@@ -24,6 +24,8 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material3.*
+import androidx.compose.material3.pulltorefresh.PullToRefreshBox
+import androidx.compose.material3.pulltorefresh.rememberPullToRefreshState
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -31,11 +33,13 @@ import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.drawBehind
 import androidx.compose.ui.draw.scale
+import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.Paint
 import androidx.compose.ui.graphics.drawscope.drawIntoCanvas
+import androidx.compose.ui.graphics.toArgb
 import androidx.compose.ui.input.nestedscroll.NestedScrollConnection
 import androidx.compose.ui.input.nestedscroll.NestedScrollSource
 import androidx.compose.ui.input.nestedscroll.nestedScroll
@@ -89,6 +93,10 @@ fun WeatherScreen(
         }
     }
 
+    // Pull to Refresh 상태 관리
+    val refreshState = rememberPullToRefreshState()
+    var isRefreshing by remember { mutableStateOf(false) }
+
     LaunchedEffect(Unit) {
         val fineLocationPermission = ContextCompat.checkSelfPermission(context, Manifest.permission.ACCESS_FINE_LOCATION)
         if (fineLocationPermission == PackageManager.PERMISSION_GRANTED) {
@@ -98,126 +106,140 @@ fun WeatherScreen(
 
     val backgroundBrush = Brush.verticalGradient(colors = listOf(topColor, bottomColor))
 
-    Box(
-        modifier = Modifier
-            .fillMaxSize()
-            .background(backgroundBrush)
-            .nestedScroll(nestedScrollConnection)
+    PullToRefreshBox(
+        isRefreshing = isRefreshing,
+        onRefresh = {
+            isRefreshing = true
+            viewModel.fetchWeather(lat, lon)
+        },
+        state = refreshState,
+        modifier = Modifier.fillMaxSize()
     ) {
-        // 1. 메인 콘텐츠
-        when (val state = uiState) {
-            is WeatherUiState.Loading -> {
-                CircularProgressIndicator(modifier = Modifier.align(Alignment.Center), color = VibePurple)
-            }
-            is WeatherUiState.Success -> {
-                WeatherLuxuryContent(state.data, toolbarHeight)
-            }
-            is WeatherUiState.Error -> {
-                Text(text = "오류: ${state.message}", modifier = Modifier.align(Alignment.Center))
-            }
-        }
-
-        // 2. 상단 가림막
         Box(
             modifier = Modifier
-                .fillMaxWidth()
-                .windowInsetsTopHeight(WindowInsets.statusBars)
-                .background(topColor)
-                .zIndex(10f)
-        )
-
-        // 3. 애니메이션 상단바
-        Box(
-            modifier = Modifier
-                .fillMaxWidth()
-                .statusBarsPadding()
-                .height(toolbarHeight)
-                .offset { IntOffset(x = 0, y = animatedOffset.roundToInt()) }
-                .background(topColor)
-                .zIndex(5f)
+                .fillMaxSize()
+                .background(backgroundBrush)
+                .nestedScroll(nestedScrollConnection)
         ) {
-            Text(
-                text = "Vibe Weather",
-                fontWeight = FontWeight.ExtraBold,
-                fontSize = 20.sp,
-                modifier = Modifier
-                    .align(Alignment.CenterStart)
-                    .padding(start = 64.dp),
-                color = Color.Black
-            )
-        }
+            // 1. 메인 콘텐츠
+            when (val state = uiState) {
+                is WeatherUiState.Loading -> {
+                    if (!isRefreshing) {
+                        CircularProgressIndicator(modifier = Modifier.align(Alignment.Center), color = VibePurple)
+                    }
+                }
+                is WeatherUiState.Success -> {
+                    if (isRefreshing) isRefreshing = false
+                    WeatherLuxuryContent(state.data, toolbarHeight)
+                }
+                is WeatherUiState.Error -> {
+                    if (isRefreshing) isRefreshing = false
+                    Text(text = "오류: ${state.message}", modifier = Modifier.align(Alignment.Center))
+                }
+            }
 
-        // 4. 뒤로가기 버튼 레이어 (Canvas 80dp 확장 버전)
-        val buttonProgress = 1f - (animatedOffset / -toolbarHeightPx)
-        val iconColor by animateColorAsState(
-            targetValue = if (buttonProgress < 0.5f) Color.White else Color.Black,
-            label = "IconColor"
-        )
-        val bgScale by animateFloatAsState(if (buttonProgress < 0.5f) 1f else 0.8f, label = "BgScale")
-        val bgAlpha by animateFloatAsState(if (buttonProgress < 0.2f) 1f else 0f, label = "BgAlpha")
-
-        Box(
-            modifier = Modifier
-                .statusBarsPadding()
-                .height(toolbarHeight)
-                .padding(start = 0.dp) 
-                .width(80.dp)
-                .zIndex(15f),
-            contentAlignment = Alignment.Center
-        ) {
+            // 2. 상단 상태바 영역 가림막
             Box(
                 modifier = Modifier
-                    .size(80.dp)
-                    .scale(bgScale)
-                    .alpha(bgAlpha)
-                    .drawBehind {
-                        drawIntoCanvas { canvas ->
-                            val paint = Paint()
-                            val frameworkPaint = paint.asFrameworkPaint()
-                            frameworkPaint.color = android.graphics.Color.BLACK
-                            frameworkPaint.alpha = 50
-                            frameworkPaint.maskFilter = BlurMaskFilter(20f, BlurMaskFilter.Blur.NORMAL)
-                            
-                            val buttonRadius = 20.dp.toPx()
-                            canvas.drawCircle(
-                                center = Offset(size.width / 2, size.height / 2),
-                                radius = buttonRadius,
-                                paint = paint
-                            )
-                        }
-                    }
+                    .fillMaxWidth()
+                    .windowInsetsTopHeight(WindowInsets.statusBars)
+                    .background(topColor)
+                    .zIndex(10f)
+            )
+
+            // 3. 애니메이션 상단바 (타이틀)
+            Box(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .statusBarsPadding()
+                    .height(toolbarHeight)
+                    .offset { IntOffset(x = 0, y = animatedOffset.roundToInt()) }
+                    .background(topColor)
+                    .zIndex(5f)
+            ) {
+                Text(
+                    text = "Vibe Weather",
+                    fontWeight = FontWeight.ExtraBold,
+                    fontSize = 20.sp,
+                    modifier = Modifier
+                        .align(Alignment.CenterStart)
+                        .padding(start = 64.dp),
+                    color = Color.Black
+                )
+            }
+
+            // 4. 뒤로가기 버튼 레이어 (Canvas 80dp 확장 버전 보존)
+            val buttonProgress = 1f - (animatedOffset / -toolbarHeightPx)
+            val iconColor by animateColorAsState(
+                targetValue = if (buttonProgress < 0.5f) Color.White else Color.Black,
+                label = "IconColor"
+            )
+            val bgScale by animateFloatAsState(if (buttonProgress < 0.5f) 1f else 0.8f, label = "BgScale")
+            val bgAlpha by animateFloatAsState(if (buttonProgress < 0.2f) 1f else 0f, label = "BgAlpha")
+
+            Box(
+                modifier = Modifier
+                    .statusBarsPadding()
+                    .height(toolbarHeight)
+                    .padding(start = 0.dp) 
+                    .width(80.dp)
+                    .zIndex(15f),
+                contentAlignment = Alignment.Center
             ) {
                 Box(
                     modifier = Modifier
-                        .size(40.dp)
-                        .align(Alignment.Center)
-                        .clip(CircleShape)
-                        .background(Brush.linearGradient(listOf(VibeBlue, VibePurple)))
-                )
+                        .size(80.dp)
+                        .scale(bgScale)
+                        .alpha(bgAlpha)
+                        .drawBehind {
+                            drawIntoCanvas { canvas ->
+                                val paint = Paint()
+                                val frameworkPaint = paint.asFrameworkPaint()
+                                frameworkPaint.color = android.graphics.Color.BLACK
+                                frameworkPaint.alpha = 50
+                                frameworkPaint.maskFilter = BlurMaskFilter(20f, BlurMaskFilter.Blur.NORMAL)
+                                
+                                val buttonRadius = 20.dp.toPx()
+                                canvas.drawCircle(
+                                    center = Offset(size.width / 2, size.height / 2),
+                                    radius = buttonRadius,
+                                    paint = paint
+                                )
+                            }
+                        }
+                ) {
+                    Box(
+                        modifier = Modifier
+                            .size(40.dp)
+                            .align(Alignment.Center)
+                            .clip(CircleShape)
+                            .background(Brush.linearGradient(listOf(VibeBlue, VibePurple)))
+                    )
+                }
+                
+                IconButton(
+                    onClick = onBackClick,
+                    modifier = Modifier.size(48.dp).align(Alignment.Center)
+                ) {
+                    Icon(
+                        imageVector = Icons.AutoMirrored.Filled.ArrowBack,
+                        contentDescription = "뒤로가기",
+                        tint = iconColor,
+                        modifier = Modifier.size(24.dp)
+                    )
+                }
             }
-            
-            IconButton(
-                onClick = onBackClick,
-                modifier = Modifier.size(48.dp).align(Alignment.Center)
-            ) {
-                Icon(
-                    imageVector = Icons.AutoMirrored.Filled.ArrowBack,
-                    contentDescription = "뒤로가기",
-                    tint = iconColor,
-                    modifier = Modifier.size(24.dp)
-                )
-            }
-        }
 
-        // 5. 하단 가림막
-        Box(
-            modifier = Modifier
-                .fillMaxWidth()
-                .windowInsetsBottomHeight(WindowInsets.navigationBars)
-                .background(bottomColor)
-                .align(Alignment.BottomCenter)
-                .zIndex(10f)
-        )
+            // 5. 하단 고정 가림막
+            Box(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .windowInsetsBottomHeight(WindowInsets.navigationBars)
+                    .background(bottomColor)
+                    .align(Alignment.BottomCenter)
+                    .zIndex(10f)
+            )
+        }
     }
 }
 
@@ -285,8 +307,6 @@ fun WeatherLuxuryContent(items: List<WeatherItem>, toolbarHeight: Dp) {
         }
     }
 }
-
-// ... 하위 컴포저블(LuxurySectionTitle, LuxuryMainCard 등) 동일 유지 ...
 
 @Composable
 fun LuxurySectionTitle(title: String) {
