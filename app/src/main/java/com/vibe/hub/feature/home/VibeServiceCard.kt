@@ -1,20 +1,25 @@
 package com.vibe.hub.feature.home
 
+import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
-import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.draw.scale
+import androidx.compose.ui.draw.clip
+import androidx.compose.ui.draw.shadow
+import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.vibe.hub.model.LaunchMode
 import com.vibe.hub.model.VibeService
+import com.vibe.hub.ui.theme.VibeBlue
+import com.vibe.hub.ui.theme.VibePurple
 
 @Composable
 fun VibeServiceCard(
@@ -24,71 +29,88 @@ fun VibeServiceCard(
 ) {
     var launchMode by remember { mutableStateOf(if (service.isNativeSupported) LaunchMode.NATIVE else LaunchMode.WEBVIEW) }
 
+    // 카드 배경 그라데이션
+    val cardGradient = Brush.verticalGradient(
+        colors = listOf(MaterialTheme.colorScheme.surface, MaterialTheme.colorScheme.surfaceVariant)
+    )
+
     Card(
         modifier = modifier
             .fillMaxWidth()
             .padding(8.dp)
+            .shadow(elevation = 8.dp, shape = RoundedCornerShape(24.dp))
+            .clip(RoundedCornerShape(24.dp))
             .clickable { onClick(service, launchMode) },
-        elevation = CardDefaults.cardElevation(defaultElevation = 4.dp),
-        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant)
+        colors = CardDefaults.cardColors(containerColor = Color.Transparent)
     ) {
         Column(
-            modifier = Modifier.padding(16.dp),
+            modifier = Modifier
+                .background(cardGradient)
+                .padding(20.dp),
             horizontalAlignment = Alignment.CenterHorizontally
         ) {
-            // Icon Placeholder
+            // 아이콘 영역 (원형 배경)
             Box(
                 modifier = Modifier
-                    .size(60.dp)
-                    .padding(8.dp),
+                    .size(70.dp)
+                    .clip(CircleShape)
+                    .background(
+                        Brush.linearGradient(listOf(VibeBlue.copy(alpha = 0.2f), VibePurple.copy(alpha = 0.2f)))
+                    ),
                 contentAlignment = Alignment.Center
             ) {
-                Text(text = "🌤️", fontSize = 40.sp)
+                Text(text = "🌤️", fontSize = 36.sp)
             }
 
-            Spacer(modifier = Modifier.height(8.dp))
+            Spacer(modifier = Modifier.height(16.dp))
 
             Text(
                 text = service.name,
                 style = MaterialTheme.typography.titleMedium,
-                fontWeight = FontWeight.Bold
+                fontWeight = FontWeight.ExtraBold,
+                color = MaterialTheme.colorScheme.onSurface
             )
 
             Text(
                 text = service.description,
                 style = MaterialTheme.typography.bodySmall,
-                color = Color.Gray,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
                 maxLines = 1
             )
 
-            Spacer(modifier = Modifier.height(12.dp))
+            Spacer(modifier = Modifier.height(20.dp))
 
-            // Native / Web Toggle
-            Row(
-                verticalAlignment = Alignment.CenterVertically,
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.SpaceBetween
+            // 모드 선택 영역 (고급스러운 디자인)
+            Surface(
+                color = MaterialTheme.colorScheme.secondaryContainer.copy(alpha = 0.5f),
+                shape = RoundedCornerShape(12.dp),
+                modifier = Modifier.fillMaxWidth()
             ) {
-                Text(
-                    text = if (launchMode == LaunchMode.NATIVE) "Native" else "WebView",
-                    style = MaterialTheme.typography.labelSmall
-                )
-                Switch(
-                    checked = launchMode == LaunchMode.WEBVIEW,
-                    onCheckedChange = { isWeb ->
-                        launchMode = if (isWeb) LaunchMode.WEBVIEW else LaunchMode.NATIVE
-                    },
-                    enabled = service.isNativeSupported,
-                    modifier = Modifier.scale(0.7f)
-                )
+                Row(
+                    verticalAlignment = Alignment.CenterVertically,
+                    modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp),
+                    horizontalArrangement = Arrangement.SpaceBetween
+                ) {
+                    Text(
+                        text = if (launchMode == LaunchMode.NATIVE) "Native" else "WebView",
+                        style = MaterialTheme.typography.labelMedium,
+                        fontWeight = FontWeight.Bold,
+                        color = MaterialTheme.colorScheme.primary,
+                        modifier = Modifier.padding(start = 4.dp)
+                    )
+                    Switch(
+                        checked = launchMode == LaunchMode.WEBVIEW,
+                        onCheckedChange = { isWeb ->
+                            launchMode = if (isWeb) LaunchMode.WEBVIEW else LaunchMode.NATIVE
+                        },
+                        enabled = service.isNativeSupported,
+                        colors = SwitchDefaults.colors(
+                            checkedThumbColor = VibePurple,
+                            checkedTrackColor = VibePurple.copy(alpha = 0.5f)
+                        )
+                    )
+                }
             }
         }
     }
 }
-
-/**
- * Modifier.scale을 커스텀으로 구현하여 스위치 등의 크기를 조절합니다.
- */
-fun Modifier.customScale(scale: Float): Modifier = this.then(
-    Modifier.graphicsLayer(scaleX = scale, scaleY = scale)
-)
