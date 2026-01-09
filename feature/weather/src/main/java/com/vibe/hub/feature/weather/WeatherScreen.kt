@@ -2,7 +2,8 @@ package com.vibe.hub.feature.weather
 
 import android.Manifest
 import android.content.pm.PackageManager
-import androidx.compose.animation.animateColorAsState
+import androidx.compose.animation.*
+import androidx.compose.animation.core.animateColorAsState
 import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.animation.core.tween
 import androidx.compose.foundation.background
@@ -42,6 +43,8 @@ import com.vibe.hub.core.ui.VibeBlue
 import com.vibe.hub.core.ui.VibePurple
 import kotlin.math.roundToInt
 
+// 중요: WeatherItem은 현재 패키지 내에 있으므로 별도 임포트 없음
+
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun WeatherScreen(
@@ -71,7 +74,6 @@ fun WeatherScreen(
     val nestedScrollConnection = remember {
         object : NestedScrollConnection {
             override fun onPreScroll(available: Offset, source: NestedScrollSource): Offset {
-                // 천천히 움직여도 방향만 명확하면 즉시 반응 (threshold를 1 정도로 낮춤)
                 if (available.y < -1f) isToolbarVisible = false
                 else if (available.y > 1f) isToolbarVisible = true
                 return Offset.Zero
@@ -107,7 +109,7 @@ fun WeatherScreen(
             }
         }
 
-        // 2. 상단 상태바 영역
+        // 2. 상단 상태바 영역 가림막
         Box(
             modifier = Modifier
                 .fillMaxWidth()
@@ -116,69 +118,81 @@ fun WeatherScreen(
                 .zIndex(10f)
         )
 
-        // 3. 애니메이션 상단바
-        Surface(
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(top = WindowInsets.statusBars.asPaddingValues().calculateTopPadding())
-                .height(toolbarHeight)
-                .offset { IntOffset(x = 0, y = animatedOffset.roundToInt()) }
-                .zIndex(5f),
-            color = topColor,
-            shadowElevation = 0.dp
-        ) {
-            Box(
-                modifier = Modifier.fillMaxSize().padding(start = 64.dp),
-                contentAlignment = Alignment.CenterStart
-            ) {
-                Text(
-                    text = "Vibe Weather",
-                    fontWeight = FontWeight.ExtraBold,
-                    fontSize = 20.sp,
-                    color = Color.Black
-                )
-            }
-        }
-
-        // 4. 뒤로가기 버튼 (그림자 잘림 방지 및 자연스러운 전환)
-        val buttonProgress = 1f - (animatedOffset / -toolbarHeightPx)
-        val iconColor by animateColorAsState(if (buttonProgress < 0.5f) Color.White else Color.Black)
-        // 버튼 배경 스케일 애니메이션 (작아졌다 커졌다 하며 전환)
-        val bgScale by animateFloatAsState(if (buttonProgress < 0.5f) 1f else 0.8f)
-
+        // 3. 애니메이션 상단바 (타이틀)
         Box(
             modifier = Modifier
-                .padding(top = WindowInsets.statusBars.asPaddingValues().calculateTopPadding())
+                .fillMaxWidth()
+                .statusBarsPadding()
                 .height(toolbarHeight)
-                .width(72.dp) // 너비를 넓혀서 그림자가 보일 공간 확보
-                .zIndex(15f),
-            contentAlignment = Alignment.Center
+                .offset { IntOffset(x = 0, y = animatedOffset.roundToInt()) }
+                .background(topColor)
+                .zIndex(5f)
         ) {
-            // 플로팅 배경 (공간 확보를 위해 size 외에 별도 조절)
+            Text(
+                text = "Vibe Weather",
+                fontWeight = FontWeight.ExtraBold,
+                fontSize = 20.sp,
+                modifier = Modifier
+                    .align(Alignment.CenterStart)
+                    .padding(start = 64.dp),
+                color = Color.Black
+            )
+        }
+
+        // 4. 뒤로가기 버튼 레이어 (엇박자 애니메이션)
+        val buttonProgress = 1f - (animatedOffset / -toolbarHeightPx)
+        val statusBarHeight = WindowInsets.statusBars.asPaddingValues().calculateTopPadding()
+        
+        Box(
+            modifier = Modifier
+                .fillMaxWidth()
+                .height(toolbarHeight + statusBarHeight)
+                .zIndex(15f)
+        ) {
             Box(
                 modifier = Modifier
-                    .size(40.dp)
-                    .scale(bgScale)
-                    .alpha(1f - (buttonProgress.coerceIn(0f, 1f)))
-                    .shadow(elevation = 8.dp, shape = CircleShape, clip = false) // 그림자 여유
-                    .clip(CircleShape)
-                    .background(Brush.linearGradient(listOf(VibeBlue, VibePurple)))
-            )
-            
-            IconButton(
-                onClick = onBackClick,
-                modifier = Modifier.size(48.dp) // 터치 영역 확장
+                    .padding(top = statusBarHeight, start = 12.dp)
+                    .size(48.dp)
+                    .align(Alignment.TopStart),
+                contentAlignment = Alignment.Center
             ) {
-                Icon(
-                    imageVector = Icons.AutoMirrored.Filled.ArrowBack,
-                    contentDescription = "뒤로가기",
-                    tint = iconColor,
-                    modifier = Modifier.size(24.dp)
+                // 플로팅 배경 (엇박자 등장)
+                AnimatedVisibility(
+                    visible = !isToolbarVisible,
+                    enter = fadeIn(tween(200, delayMillis = 100)) + scaleIn(initialScale = 0.8f),
+                    exit = fadeOut(tween(150)) + scaleOut(targetScale = 0.8f)
+                ) {
+                    // Box + shadow(clip=false) 조합으로 안전하게 그림자 구현
+                    Box(
+                        modifier = Modifier
+                            .size(40.dp)
+                            .shadow(elevation = 6.dp, shape = CircleShape, clip = false)
+                            .background(Brush.linearGradient(listOf(VibeBlue, VibePurple)), CircleShape)
+                    )
+                }
+
+                // 아이콘 색상 전환
+                val iconColor by animateColorAsState(
+                    targetValue = if (!isToolbarVisible) Color.White else Color.Black,
+                    animationSpec = tween(durationMillis = 200),
+                    label = "IconColor"
                 )
+                
+                IconButton(
+                    onClick = onBackClick,
+                    modifier = Modifier.size(40.dp)
+                ) {
+                    Icon(
+                        imageVector = Icons.AutoMirrored.Filled.ArrowBack,
+                        contentDescription = "뒤로가기",
+                        tint = iconColor,
+                        modifier = Modifier.size(24.dp)
+                    )
+                }
             }
         }
 
-        // 5. 하단 네비게이션 바 가림막
+        // 5. 하단 고정 가림막
         Box(
             modifier = Modifier
                 .fillMaxWidth()
@@ -220,6 +234,8 @@ fun WeatherLuxuryContent(items: List<WeatherItem>, toolbarHeight: androidx.compo
         }
     }
 }
+
+// ... 나머지 하위 Composable 함수들(LuxurySectionTitle 등)은 그대로 유지 ...
 
 @Composable
 fun LuxurySectionTitle(title: String) {
