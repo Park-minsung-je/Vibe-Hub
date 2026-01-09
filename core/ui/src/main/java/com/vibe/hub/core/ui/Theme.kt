@@ -46,12 +46,10 @@ fun VibeHubTheme(
     if (!view.isInEditMode) {
         SideEffect {
             val window = (view.context as Activity).window
-            window.statusBarColor = android.graphics.Color.TRANSPARENT
-            window.navigationBarColor = android.graphics.Color.TRANSPARENT
-            
             val insetsController = WindowCompat.getInsetsController(window, view)
+            
+            // 상태바 아이콘만 어둡게 설정 (밝은 배경 대비)
             insetsController.isAppearanceLightStatusBars = !darkTheme
-            insetsController.isAppearanceLightNavigationBars = !darkTheme
         }
     }
 

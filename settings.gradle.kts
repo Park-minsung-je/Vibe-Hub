@@ -19,7 +19,7 @@ dependencyResolutionManagement {
     }
 }
 
-rootProject.name = "Vibe Hub"
+rootProject.name = "VibeHub"
 include(":app")
 
 // Core 모듈군

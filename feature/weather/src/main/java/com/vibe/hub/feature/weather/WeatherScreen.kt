@@ -50,8 +50,11 @@ fun WeatherScreen(
     val context = LocalContext.current
     val density = LocalDensity.current
 
+    // 상단바 높이 설정 (상태바 영역 제외 순수 Toolbar 높이)
     val toolbarHeight = 64.dp
     val toolbarHeightPx = with(density) { toolbarHeight.roundToPx().toFloat() }
+    
+    // 상단바 오프셋
     var toolbarOffsetHeightPx by remember { mutableFloatStateOf(0f) }
 
     val nestedScrollConnection = remember {
@@ -82,6 +85,7 @@ fun WeatherScreen(
             .background(backgroundBrush)
             .nestedScroll(nestedScrollConnection)
     ) {
+        // 1. 메인 콘텐츠
         when (val state = uiState) {
             is WeatherUiState.Loading -> {
                 CircularProgressIndicator(modifier = Modifier.align(Alignment.Center), color = VibePurple)
@@ -94,18 +98,20 @@ fun WeatherScreen(
             }
         }
 
+        // 2. 통째로 올라가는 상단바 (배경 + 타이틀)
         Surface(
             modifier = Modifier
                 .fillMaxWidth()
                 .statusBarsPadding()
                 .height(toolbarHeight)
                 .offset { IntOffset(x = 0, y = toolbarOffsetHeightPx.roundToInt()) },
-            color = Color.Transparent
+            color = Color.White.copy(alpha = 0.9f), // 불투명 배경을 주어 통째로 움직이는 느낌 강조
+            shadowElevation = 4.dp
         ) {
             Box(
                 modifier = Modifier
                     .fillMaxSize()
-                    .padding(start = 64.dp),
+                    .padding(start = 64.dp), // 뒤로가기 버튼 위치 고려
                 contentAlignment = Alignment.CenterStart
             ) {
                 Text(
@@ -118,7 +124,8 @@ fun WeatherScreen(
             }
         }
 
-        val progress = 1f - (toolbarOffsetHeightPx / -toolbarHeightPx)
+        // 3. 고정된 뒤로가기 버튼 (상단바가 올라가면 플로팅으로 변신)
+        val progress = 1f - (toolbarOffsetHeightPx / -toolbarHeightPx) // 1.0(다 보임) -> 0.0(숨겨짐)
         
         Box(
             modifier = Modifier
@@ -132,12 +139,12 @@ fun WeatherScreen(
                 modifier = Modifier
                     .size(40.dp)
                     .shadow(
-                        elevation = if (progress < 0.8f) 8.dp else 0.dp, 
+                        elevation = if (progress < 0.5f) 8.dp else 0.dp, 
                         shape = CircleShape
                     )
                     .clip(CircleShape)
                     .background(
-                        if (progress < 0.8f) {
+                        if (progress < 0.5f) {
                             Brush.linearGradient(colors = listOf(VibeBlue, VibePurple))
                         } else {
                             Brush.linearGradient(colors = listOf(Color.Transparent, Color.Transparent))
@@ -149,7 +156,7 @@ fun WeatherScreen(
                 Icon(
                     imageVector = Icons.AutoMirrored.Filled.ArrowBack,
                     contentDescription = "뒤로가기",
-                    tint = if (progress < 0.8f) Color.White else Color.Black,
+                    tint = if (progress < 0.5f) Color.White else Color.Black,
                     modifier = Modifier.size(24.dp)
                 )
             }
