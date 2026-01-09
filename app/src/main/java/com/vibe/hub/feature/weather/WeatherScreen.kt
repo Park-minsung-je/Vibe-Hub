@@ -221,7 +221,11 @@ fun LuxuryDailyList() {
                     Text("☀️", modifier = Modifier.weight(1f))
                     Text("12° / 24°", fontWeight = FontWeight.Bold, color = VibeBlue)
                 }
-
+                if (i < 4) HorizontalDivider(color = Color.White.copy(alpha = 0.3f), thickness = 1.dp)
+            }
+        }
+    }
+}
 
 fun getSkyDescription(value: String): String = when(value) {
     "1" -> "Clear"
