@@ -2,8 +2,8 @@ pluginManagement {
     repositories {
         google {
             content {
-                includeGroupByRegex("com\.android.*")
-                includeGroupByRegex("com\.google.*")
+                includeGroupByRegex("com.android.*")
+                includeGroupByRegex("com.google.*")
                 includeGroupByRegex("androidx.*")
             }
         }
@@ -21,4 +21,3 @@ dependencyResolutionManagement {
 
 rootProject.name = "Vibe Hub"
 include(":app")
-
