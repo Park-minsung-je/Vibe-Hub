@@ -34,9 +34,9 @@ fun WebViewScreen(
     Column(
         modifier = Modifier
             .fillMaxSize()
-            .background(webBackgroundColor) // 전체 배경색을 웹색상으로 설정
+            .background(webBackgroundColor)
     ) {
-        // 1. 상단 상태바 영역 박스 (웹 배경색과 일치시켜 끊김 없이 보이게 함)
+        // 1. 상단 상태바 영역 (웹 배경색과 일치)
         Spacer(
             modifier = Modifier
                 .fillMaxWidth()
@@ -47,22 +47,19 @@ fun WebViewScreen(
         Box(
             modifier = Modifier
                 .fillMaxWidth()
-                .weight(1f) // 남은 공간 모두 차지
+                .weight(1f)
         ) {
-            // 2. 웹뷰 본체 (하단 내비바 영역을 가리지 않도록 padding 추가)
+            // 2. 웹뷰 본체 (내비바 비침을 위해 padding 대신 하단 Spacer 사용 가능하나, 
+            // WebView 특성상 완전한 비침을 위해 전체 화면으로 띄우고 내부 패딩을 줍니다.)
             AndroidView(
-                modifier = Modifier
-                    .fillMaxSize()
-                    .windowInsetsPadding(WindowInsets.navigationBars), // 하단 내비바 패딩 추가
+                modifier = Modifier.fillMaxSize(),
                 factory = { ctx ->
                     WebView(ctx).apply {
                         layoutParams = ViewGroup.LayoutParams(
                             ViewGroup.LayoutParams.MATCH_PARENT,
                             ViewGroup.LayoutParams.MATCH_PARENT
                         )
-                        // 웹뷰 자체의 배경색도 투명하게 하여 앱의 배경색이 보이도록 함
                         setBackgroundColor(0) 
-                        
                         webViewClient = WebViewClient()
                         webChromeClient = object : WebChromeClient() {
                             override fun onGeolocationPermissionsShowPrompt(
@@ -108,5 +105,13 @@ fun WebViewScreen(
                 )
             }
         }
+
+        // 4. 하단 내비게이션 바 영역 (반투명 비침을 유지하면서 스크롤 끝 가림 방지)
+        Spacer(
+            modifier = Modifier
+                .fillMaxWidth()
+                .windowInsetsBottomHeight(WindowInsets.navigationBars)
+                .background(webBackgroundColor.copy(alpha = 0.5f)) // 반투명 배경 적용
+        )
     }
 }

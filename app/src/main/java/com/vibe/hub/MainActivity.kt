@@ -10,6 +10,8 @@ import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.runtime.*
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.toArgb
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalView
 import androidx.core.content.ContextCompat
@@ -48,8 +50,12 @@ class MainActivity : ComponentActivity() {
             if (!view.isInEditMode) {
                 SideEffect {
                     val window = (view.context as android.app.Activity).window
-                    // 전역 설정: 상태바와 내비바 아이콘을 어둡게 설정 (밝은 배경용)
+                    // 시스템 바 배경을 투명하게 설정 (Edge-to-Edge 극대화)
+                    window.navigationBarColor = Color.Transparent.toArgb()
+                    window.statusBarColor = Color.Transparent.toArgb()
+
                     val insetsController = WindowCompat.getInsetsController(window, view)
+                    // 중요: 밝은 배경이므로 아이콘들을 어둡게(Dark) 설정
                     insetsController.isAppearanceLightStatusBars = true
                     insetsController.isAppearanceLightNavigationBars = true
                 }
