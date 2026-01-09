@@ -3,6 +3,7 @@ package com.vibe.hub.feature.weather
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
@@ -39,13 +40,13 @@ fun WeatherScreen(
     }
 
     val backgroundBrush = Brush.verticalGradient(
-        colors = listOf(VibeBlue.copy(alpha = 0.2f), Color.White)
+        colors = listOf(VibeBlue.copy(alpha = 0.1f), Color.White)
     )
 
     Scaffold(
         topBar = {
             TopAppBar(
-                title = { Text("실시간 날씨", fontWeight = FontWeight.Bold) },
+                title = { Text("Vibe Weather", fontWeight = FontWeight.ExtraBold) },
                 navigationIcon = {
                     IconButton(onClick = onBackClick) {
                         Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Back")
@@ -63,24 +64,13 @@ fun WeatherScreen(
         ) {
             when (val state = uiState) {
                 is WeatherUiState.Loading -> {
-                    Column(
-                        modifier = Modifier.align(Alignment.Center),
-                        horizontalAlignment = Alignment.CenterHorizontally
-                    ) {
-                        CircularProgressIndicator(color = VibePurple)
-                        Spacer(modifier = Modifier.height(16.dp))
-                        Text("기상 정보를 불러오는 중...", style = MaterialTheme.typography.bodyMedium)
-                    }
+                    CircularProgressIndicator(modifier = Modifier.align(Alignment.Center), color = VibePurple)
                 }
                 is WeatherUiState.Success -> {
-                    WeatherContent(state.data)
+                    WeatherAlignedContent(state.data)
                 }
                 is WeatherUiState.Error -> {
-                    Text(
-                        text = "오류: ${state.message}",
-                        modifier = Modifier.align(Alignment.Center),
-                        color = MaterialTheme.colorScheme.error
-                    )
+                    Text(text = "오류: ${state.message}", modifier = Modifier.align(Alignment.Center), color = MaterialTheme.colorScheme.error)
                 }
             }
         }
@@ -88,60 +78,108 @@ fun WeatherScreen(
 }
 
 @Composable
-fun WeatherContent(items: List<WeatherItem>) {
+fun WeatherAlignedContent(items: List<WeatherItem>) {
+    // 데이터를 웹 구성과 유사하게 분류
+    val currentData = items.filter { it.fcstDate == items[0].fcstDate && it.fcstTime == items[0].fcstTime }
+    val hourlyData = items.groupBy { "${it.fcstDate}${it.fcstTime}" }.values.toList()
+
     LazyColumn(
         modifier = Modifier.fillMaxSize(),
-        contentPadding = PaddingValues(20.dp),
-        verticalArrangement = Arrangement.spacedBy(12.dp)
+        contentPadding = PaddingValues(16.dp),
+        verticalArrangement = Arrangement.spacedBy(24.dp)
     ) {
+        // 1. 현재 날씨 섹션 (웹의 '현재 날씨' 대응)
         item {
-            Text(
-                "오늘의 예보 정보",
-                style = MaterialTheme.typography.titleLarge,
-                fontWeight = FontWeight.ExtraBold,
-                modifier = Modifier.padding(bottom = 8.dp)
-            )
+            CurrentWeatherSection(currentData)
         }
-        items(items) { item ->
-            WeatherCard(item)
+
+        // 2. 시간별 예보 섹션 (웹의 '시간별 예보' 대응 - 가로 스크롤)
+        item {
+            Text("시간별 예보", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold)
+            Spacer(modifier = Modifier.height(8.dp))
+            HourlyWeatherSection(hourlyData)
+        }
+
+        // 3. 상세 정보 섹션 (웹의 나머지 항목들 대응)
+        item {
+            Text("상세 기상 정보", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold)
+            Spacer(modifier = Modifier.height(8.dp))
+            DetailedWeatherSection(currentData)
         }
     }
 }
 
 @Composable
-fun WeatherCard(item: WeatherItem) {
+fun CurrentWeatherSection(items: List<WeatherItem>) {
+    val temp = items.find { it.category == "TMP" }?.fcstValue ?: "--"
+    val sky = items.find { it.category == "SKY" }?.fcstValue ?: ""
+    
     Card(
         modifier = Modifier.fillMaxWidth(),
-        shape = RoundedCornerShape(16.dp),
-        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface.copy(alpha = 0.8f)),
-        elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
+        shape = RoundedCornerShape(28.dp),
+        colors = CardDefaults.cardColors(containerColor = VibeBlue.copy(alpha = 0.9f))
     ) {
-        Row(
-            modifier = Modifier
-                .padding(16.dp)
-                .fillMaxWidth(),
-            verticalAlignment = Alignment.CenterVertically,
-            horizontalArrangement = Arrangement.SpaceBetween
+        Column(
+            modifier = Modifier.padding(24.dp).fillMaxWidth(),
+            horizontalAlignment = Alignment.CenterHorizontally
         ) {
-            Column {
-                Text(
-                    text = item.category,
-                    style = MaterialTheme.typography.labelLarge,
-                    color = VibeBlue,
-                    fontWeight = FontWeight.Bold
-                )
-                Text(
-                    text = "${item.fcstDate.substring(4, 6)}/${item.fcstDate.substring(6, 8)} ${item.fcstTime.substring(0, 2)}:00",
-                    style = MaterialTheme.typography.bodySmall,
-                    color = Color.Gray
-                )
+            Text("현재 기온", color = Color.White.copy(alpha = 0.8f))
+            Text(text = "${temp}℃", fontSize = 64.sp, fontWeight = FontWeight.Black, color = Color.White)
+            Text(text = "하늘 상태: $sky", color = Color.White, style = MaterialTheme.typography.bodyLarge)
+        }
+    }
+}
+
+@Composable
+fun HourlyWeatherSection(groupedItems: List<List<WeatherItem>>) {
+    LazyRow(
+        horizontalArrangement = Arrangement.spacedBy(12.dp),
+        contentPadding = PaddingValues(vertical = 4.dp)
+    ) {
+        items(groupedItems) { timeGroup ->
+            val time = timeGroup[0].fcstTime.substring(0, 2)
+            val temp = timeGroup.find { it.category == "TMP" }?.fcstValue ?: ""
+            
+            Card(
+                shape = RoundedCornerShape(16.dp),
+                colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f))
+            ) {
+                Column(
+                    modifier = Modifier.padding(16.dp),
+                    horizontalAlignment = Alignment.CenterHorizontally
+                ) {
+                    Text("${time}시", style = MaterialTheme.typography.labelMedium)
+                    Spacer(modifier = Modifier.height(8.dp))
+                    Text("🌤️", fontSize = 24.sp)
+                    Spacer(modifier = Modifier.height(8.dp))
+                    Text("${temp}°", fontWeight = FontWeight.Bold)
+                }
             }
-            Text(
-                text = item.fcstValue,
-                style = MaterialTheme.typography.headlineMedium,
-                fontWeight = FontWeight.Black,
-                color = MaterialTheme.colorScheme.primary
-            )
+        }
+    }
+}
+
+@Composable
+fun DetailedWeatherSection(items: List<WeatherItem>) {
+    val categories = listOf("REH" to "습도", "WSD" to "풍속", "POP" to "강수확률", "VEC" to "풍향")
+    
+    Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+        categories.chunked(2).forEach { rowItems ->
+            Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                rowItems.forEach { (cat, label) ->
+                    val value = items.find { it.category == cat }?.fcstValue ?: "--"
+                    Card(
+                        modifier = Modifier.weight(1f),
+                        shape = RoundedCornerShape(16.dp),
+                        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface)
+                    ) {
+                        Row(modifier = Modifier.padding(16.dp), verticalAlignment = Alignment.CenterVertically) {
+                            Text(label, style = MaterialTheme.typography.bodySmall, modifier = Modifier.weight(1f))
+                            Text(value, fontWeight = FontWeight.Bold)
+                        }
+                    }
+                }
+            }
         }
     }
 }
