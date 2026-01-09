@@ -83,10 +83,7 @@ fun VibeServiceCard(
     }
 }
 
-// 스위치 크기 조절을 위한 확장 함수
 @Composable
 fun Modifier.scale(scale: Float): Modifier = this.then(
     Modifier.graphicsLayer(scaleX = scale, scaleY = scale)
 )
-
-import androidx.compose.ui.graphics.graphicsLayer
