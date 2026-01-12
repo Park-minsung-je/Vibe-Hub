@@ -12,6 +12,7 @@ class WeatherRepository @Inject constructor(
             val response = apiService.getWeatherData(lat, lon)
             Result.success(response)
         } catch (e: Exception) {
+            e.printStackTrace() // 디버깅을 위해 로그 출력
             Result.failure(e)
         }
     }

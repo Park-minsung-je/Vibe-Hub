@@ -18,10 +18,18 @@ class WeatherViewModel @Inject constructor(
 
     fun fetchWeather(lat: Double, lon: Double) {
         viewModelScope.launch {
+            // 로딩 상태 전송은 이미 데이터가 있을 경우 생략할 수도 있지만,
+            // Pull-to-Refresh에서 직접 제어하므로 여기서는 단순 호출만 담당해도 됨.
+            // 하지만 초기 진입 시 로딩 표시를 위해 필요함.
             _uiState.value = WeatherUiState.Loading
+            
             repository.getRemoteWeather(lat, lon)
                 .onSuccess { items ->
-                    _uiState.value = WeatherUiState.Success(items)
+                    if (items.isNotEmpty()) {
+                        _uiState.value = WeatherUiState.Success(items)
+                    } else {
+                        _uiState.value = WeatherUiState.Error("날씨 데이터가 없습니다.")
+                    }
                 }
                 .onFailure { error ->
                     _uiState.value = WeatherUiState.Error(error.message ?: "날씨 데이터를 가져오는데 실패했습니다.")
