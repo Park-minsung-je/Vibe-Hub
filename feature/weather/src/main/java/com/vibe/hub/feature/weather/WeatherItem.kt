@@ -7,6 +7,7 @@ data class WeatherItem(
     val fcstDate: String,
     val fcstTime: String,
     val fcstValue: String,
+    val obsrValue: String?, // [추가] 실황 실측값 대응
     val nx: Int,
     val ny: Int
 )

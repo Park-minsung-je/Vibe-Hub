@@ -7,13 +7,19 @@ import javax.inject.Singleton
 class WeatherRepository @Inject constructor(
     private val apiService: WeatherApiService
 ) {
-    suspend fun getRemoteWeather(lat: Double, lon: Double): Result<List<WeatherItem>> {
-        return try {
-            val response = apiService.getWeatherData(lat, lon)
-            Result.success(response)
-        } catch (e: Exception) {
-            e.printStackTrace() // 디버깅을 위해 로그 출력
-            Result.failure(e)
-        }
+    suspend fun getCurrentWeather(lat: Double, lon: Double) = Result.runCatching {
+        apiService.getCurrentWeather(lat, lon)
+    }
+
+    suspend fun getHourlyForecast(lat: Double, lon: Double) = Result.runCatching {
+        apiService.getWeatherData(lat, lon)
+    }
+
+    suspend fun getMidTa(regId: String) = Result.runCatching {
+        apiService.getMidTaForecast(regId)
+    }
+
+    suspend fun getMidLand(regId: String) = Result.runCatching {
+        apiService.getMidLandForecast(regId)
     }
 }
