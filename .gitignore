@@ -50,4 +50,4 @@ build/
 
 # Kotlin
 /build
-.kotlin
+.kotlin*.hprof
