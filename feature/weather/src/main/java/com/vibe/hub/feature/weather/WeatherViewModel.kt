@@ -7,7 +7,23 @@ import kotlinx.coroutines.async
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.launch
+import java.time.LocalDateTime
+import java.time.format.DateTimeFormatter
 import javax.inject.Inject
+
+sealed class WeatherUiState {
+    object Loading : WeatherUiState()
+    data class Success(
+        val address: String,
+        val fetchTime: String,
+        val current: List<WeatherItem>,
+        val hourly: List<WeatherItem>,
+        val midTa: Map<String, String>,
+        val midLand: Map<String, String>,
+        val lastUpdated: Long // [추가] 동일 시간 새로고침 감지용
+    ) : WeatherUiState()
+    data class Error(val message: String) : WeatherUiState()
+}
 
 @HiltViewModel
 class WeatherViewModel @Inject constructor(
@@ -17,51 +33,58 @@ class WeatherViewModel @Inject constructor(
     private val _uiState = MutableStateFlow<WeatherUiState>(WeatherUiState.Loading)
     val uiState: StateFlow<WeatherUiState> = _uiState
 
-    private var isDataLoaded = false
-
     fun fetchWeather(lat: Double, lon: Double, forceRefresh: Boolean = false) {
-        if (isDataLoaded && !forceRefresh) return
+        if (!forceRefresh && repository.hasCache()) {
+            _uiState.value = WeatherUiState.Success(
+                address = repository.cachedAddress ?: "주소 정보 없음",
+                fetchTime = repository.cachedFetchTime ?: "",
+                current = repository.cachedCurrent ?: emptyList(),
+                hourly = repository.cachedHourly ?: emptyList(),
+                midTa = repository.cachedMidTa ?: emptyMap(),
+                midLand = repository.cachedMidLand ?: emptyMap(),
+                lastUpdated = System.currentTimeMillis()
+            )
+            return
+        }
 
         viewModelScope.launch {
-            // 새로고침 시에도 Loading 상태를 전송하여 UI와 LaunchedEffect가 정상 동작하게 함
-            _uiState.value = WeatherUiState.Loading
+            if (!forceRefresh) _uiState.value = WeatherUiState.Loading
             
             try {
-                val currentDeferred = async { repository.getCurrentWeather(lat, lon) }
-                val hourlyDeferred = async { repository.getHourlyForecast(lat, lon) }
-                val midTaDeferred = async { repository.getMidTa("11B10101") }
-                val midLandDeferred = async { repository.getMidLand("11B00000") }
+                if (forceRefresh) repository.clearCache()
 
-                val current = currentDeferred.await().getOrDefault(emptyList())
-                val hourly = hourlyDeferred.await().getOrDefault(emptyList())
-                val midTa = midTaDeferred.await().getOrDefault(emptyList())
-                val midLand = midLandDeferred.await().getOrDefault(emptyList())
+                val addressDef = async { repository.getAddress(lat, lon) }
+                val currentDef = async { repository.getCurrentWeather(lat, lon) }
+                val hourlyDef = async { repository.getHourlyForecast(lat, lon) }
+                val midTaDef = async { repository.getMidTa("11B10101") }
+                val midLandDef = async { repository.getMidLand("11B00000") }
+
+                val address = addressDef.await().getOrNull()?.get("address") ?: "주소 정보 없음"
+                val current = currentDef.await().getOrDefault(emptyList())
+                val hourly = hourlyDef.await().getOrDefault(emptyList())
+                val midTa = midTaDef.await().getOrNull()?.firstOrNull() ?: emptyMap()
+                val midLand = midLandDef.await().getOrNull()?.firstOrNull() ?: emptyMap()
+                
+                val fetchTime = LocalDateTime.now().format(DateTimeFormatter.ofPattern("HH:mm"))
 
                 if (hourly.isNotEmpty() || current.isNotEmpty()) {
+                    repository.cachedAddress = address
+                    repository.cachedFetchTime = fetchTime
+                    repository.cachedCurrent = current
+                    repository.cachedHourly = hourly
+                    repository.cachedMidTa = midTa
+                    repository.cachedMidLand = midLand
+                    
                     _uiState.value = WeatherUiState.Success(
-                        current = current,
-                        hourly = hourly,
-                        midTa = midTa.firstOrNull() ?: emptyMap(),
-                        midLand = midLand.firstOrNull() ?: emptyMap()
+                        address, fetchTime, current, hourly, midTa, midLand, 
+                        lastUpdated = System.currentTimeMillis() // 갱신 시마다 고유값 생성
                     )
-                    isDataLoaded = true
                 } else {
-                    _uiState.value = WeatherUiState.Error("날씨 데이터를 찾을 수 없습니다.")
+                    _uiState.value = WeatherUiState.Error("데이터 로드 실패")
                 }
             } catch (e: Exception) {
-                _uiState.value = WeatherUiState.Error(e.message ?: "네트워크 오류가 발생했습니다.")
+                _uiState.value = WeatherUiState.Error(e.message ?: "네트워크 에러")
             }
         }
     }
-}
-
-sealed class WeatherUiState {
-    object Loading : WeatherUiState()
-    data class Success(
-        val current: List<WeatherItem>,
-        val hourly: List<WeatherItem>,
-        val midTa: Map<String, String>,
-        val midLand: Map<String, String>
-    ) : WeatherUiState()
-    data class Error(val message: String) : WeatherUiState()
 }

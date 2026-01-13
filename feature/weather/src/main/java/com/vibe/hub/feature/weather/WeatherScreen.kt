@@ -3,8 +3,14 @@ package com.vibe.hub.feature.weather
 import android.Manifest
 import android.content.pm.PackageManager
 import android.graphics.BlurMaskFilter
-import androidx.compose.animation.*
-import androidx.compose.animation.core.*
+import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.animation.animateColorAsState
+import androidx.compose.animation.core.animateDpAsState
+import androidx.compose.animation.core.animateFloatAsState
+import androidx.compose.animation.core.tween
+import androidx.compose.animation.fadeIn
+import androidx.compose.animation.scaleIn
+import androidx.compose.animation.slideInVertically
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.interaction.MutableInteractionSource
@@ -24,15 +30,26 @@ import androidx.compose.runtime.*
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.draw.*
+import androidx.compose.ui.draw.alpha
+import androidx.compose.ui.draw.blur
+import androidx.compose.ui.draw.clip
+import androidx.compose.ui.draw.drawBehind
+import androidx.compose.ui.draw.scale
 import androidx.compose.ui.geometry.Offset
-import androidx.compose.ui.graphics.*
+import androidx.compose.ui.graphics.Brush
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.Paint
 import androidx.compose.ui.graphics.drawscope.drawIntoCanvas
-import androidx.compose.ui.input.nestedscroll.*
+import androidx.compose.ui.input.nestedscroll.NestedScrollConnection
+import androidx.compose.ui.input.nestedscroll.NestedScrollSource
+import androidx.compose.ui.input.nestedscroll.nestedScroll
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.text.font.FontWeight
-import androidx.compose.ui.unit.*
+import androidx.compose.ui.unit.Dp
+import androidx.compose.ui.unit.IntOffset
+import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
 import androidx.compose.ui.zIndex
 import androidx.core.content.ContextCompat
 import androidx.hilt.navigation.compose.hiltViewModel
@@ -82,8 +99,6 @@ fun WeatherScreen(
 
     val refreshState = rememberPullToRefreshState()
     var isRefreshing by remember { mutableStateOf(false) }
-    
-    // [핵심] 이전 성공 데이터를 보관하여 새로고침 중에도 화면을 유지함
     var lastSuccessState by remember { mutableStateOf<WeatherUiState.Success?>(null) }
 
     LaunchedEffect(Unit) {
@@ -123,44 +138,35 @@ fun WeatherScreen(
                 PullToRefreshDefaults.Indicator(
                     state = refreshState,
                     isRefreshing = isRefreshing,
-                    modifier = Modifier
-                        .align(Alignment.TopCenter)
-                        .padding(top = statusBarHeight + toolbarHeight),
+                    modifier = Modifier.align(Alignment.TopCenter).padding(top = statusBarHeight + toolbarHeight),
                     containerColor = Color.White,
                     color = VibePurple
                 )
             }
         ) {
             Box(modifier = Modifier.fillMaxSize()) {
-                // 데이터가 있을 경우 (초기 로드 성공 후 또는 새로고침 중)
                 if (lastSuccessState != null) {
                     val blurRadius by animateDpAsState(
                         targetValue = if (isRefreshing) 4.dp else 0.dp,
                         animationSpec = tween(durationMillis = 500),
                         label = "BlurRadius"
                     )
-                    
                     Box(modifier = Modifier.fillMaxSize().blur(blurRadius)) {
                         WeatherLuxuryContent(lastSuccessState!!, toolbarHeight)
                     }
-
                     if (isRefreshing) {
                         Box(modifier = Modifier.fillMaxSize().clickable(interactionSource = remember { MutableInteractionSource() }, indication = null) { })
                     }
-                } 
-                // 초기 로딩 중 (데이터가 한 번도 로드되지 않았을 때)
-                else if (uiState is WeatherUiState.Loading) {
+                } else if (uiState is WeatherUiState.Loading) {
                     CircularProgressIndicator(modifier = Modifier.align(Alignment.Center), color = VibePurple)
-                }
-                // 초기 에러 발생 시
-                else if (uiState is WeatherUiState.Error) {
+                } else if (uiState is WeatherUiState.Error) {
                     Text(text = "오류: ${(uiState as WeatherUiState.Error).message}", modifier = Modifier.align(Alignment.Center))
                 }
             }
         }
 
-        // 상단바 레이아웃 보존
         Box(modifier = Modifier.fillMaxWidth().windowInsetsTopHeight(WindowInsets.statusBars).background(topColor).zIndex(10f))
+        
         Box(
             modifier = Modifier
                 .fillMaxWidth()
@@ -170,10 +176,41 @@ fun WeatherScreen(
                 .background(topColor)
                 .zIndex(5f)
         ) {
-            Text(text = "Vibe Weather", fontWeight = FontWeight.ExtraBold, fontSize = 20.sp, modifier = Modifier.align(Alignment.CenterStart).padding(start = 64.dp), color = Color.Black)
+            Text(
+                text = "Vibe Weather", 
+                fontWeight = FontWeight.ExtraBold, 
+                fontSize = 20.sp, 
+                modifier = Modifier.align(Alignment.CenterStart).padding(start = 64.dp), 
+                color = Color.Black
+            )
+
+            lastSuccessState?.let {
+                Column(
+                    modifier = Modifier
+                        .align(Alignment.CenterEnd)
+                        .padding(end = 20.dp),
+                    horizontalAlignment = Alignment.End,
+                    verticalArrangement = Arrangement.Center
+                ) {
+                    Text(
+                        text = it.address,
+                        style = MaterialTheme.typography.labelSmall,
+                        color = Color.Black.copy(alpha = 0.5f), // 더 연하게 수정
+                        fontSize = 9.sp, // 더 작게
+                        fontWeight = FontWeight.Bold,
+                        lineHeight = 10.sp
+                    )
+                    Text(
+                        text = "Updated at ${it.fetchTime}",
+                        style = MaterialTheme.typography.labelSmall,
+                        color = Color.Black.copy(alpha = 0.4f),
+                        fontSize = 8.sp, // 더 작게
+                        lineHeight = 9.sp
+                    )
+                }
+            }
         }
 
-        // 뒤로가기 버튼 로직 보존
         val buttonProgress = 1f - (animatedOffset / -toolbarHeightPx)
         val isFloated = buttonProgress < 0.2f 
         val bgAlpha by animateFloatAsState(if (isFloated) 1f else 0f, tween(300), label = "BgAlpha")
@@ -198,7 +235,6 @@ fun WeatherScreen(
                 Icon(imageVector = Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "뒤로가기", tint = iconColor, modifier = Modifier.size(24.dp))
             }
         }
-
         Box(modifier = Modifier.fillMaxWidth().windowInsetsBottomHeight(WindowInsets.navigationBars).background(bottomColor).align(Alignment.BottomCenter).zIndex(10f))
     }
 }
@@ -207,60 +243,28 @@ fun WeatherScreen(
 fun WeatherLuxuryContent(state: WeatherUiState.Success, toolbarHeight: Dp) {
     var hasAnimated by rememberSaveable { mutableStateOf(false) }
     var isVisible by remember { mutableStateOf(hasAnimated) }
-    LaunchedEffect(Unit) {
-        if (!hasAnimated) { isVisible = true; hasAnimated = true }
-    }
+    LaunchedEffect(Unit) { if (!hasAnimated) { isVisible = true; hasAnimated = true } }
 
-    val hourlyData = state.hourly
-        .filter { 
-            val nowStr = LocalDateTime.now().format(DateTimeFormatter.ofPattern("yyyyMMddHH")) + "00"
-            val itemTime = it.fcstDate + it.fcstTime
-            // 현재 시간보다 큰(미래) 데이터만 포함
-            itemTime > nowStr 
-        }
-        .groupBy { "${it.fcstDate}${it.fcstTime}" }
-        .values
-        .toList()
-        .take(24)
+    val nowStr = LocalDateTime.now().format(DateTimeFormatter.ofPattern("yyyyMMddHH")) + "00"
+    val hourlyData = state.hourly.filter { (it.fcstDate + it.fcstTime) > nowStr }.groupBy { "${it.fcstDate}${it.fcstTime}" }.values.toList().take(24)
 
     LazyColumn(
         modifier = Modifier.fillMaxSize(),
         contentPadding = PaddingValues(top = WindowInsets.statusBars.asPaddingValues().calculateTopPadding() + toolbarHeight + 16.dp, start = 20.dp, end = 20.dp, bottom = 24.dp),
         verticalArrangement = Arrangement.spacedBy(24.dp)
     ) {
-        item {
-            AnimatedVisibility(visible = isVisible, enter = fadeIn(tween(500)) + slideInVertically(tween(500)) { 100 } + scaleIn(tween(500), initialScale = 0.9f)) {
-                LuxuryMainCard(state.current, state.hourly.take(10))
-            }
-        }
-        item {
-            AnimatedVisibility(visible = isVisible, enter = fadeIn(tween(500, 100)) + slideInVertically(tween(500, 100)) { 100 }) {
-                Column { LuxurySectionTitle("시간별 예보"); LuxuryHourlySection(hourlyData) }
-            }
-        }
-        item {
-            AnimatedVisibility(visible = isVisible, enter = fadeIn(tween(500, 200)) + slideInVertically(tween(500, 200)) { 100 }) {
-                Column { LuxurySectionTitle("상세 기상 정보"); LuxuryDetailGrid(state.current.ifEmpty { state.hourly.take(10) }) }
-            }
-        }
-        item {
-            AnimatedVisibility(visible = isVisible, enter = fadeIn(tween(500, 300)) + slideInVertically(tween(500, 300)) { 100 }) {
-                Column { LuxurySectionTitle("일자별 예보 (중기)"); LuxuryDailyList(state.midTa, state.midLand) }
-            }
-        }
+        item { AnimatedVisibility(visible = isVisible, enter = fadeIn(tween(500)) + slideInVertically(tween(500)) { 100 } + scaleIn(tween(500), initialScale = 0.9f)) { LuxuryMainCard(state.current, state.hourly.take(10)) } }
+        item { AnimatedVisibility(visible = isVisible, enter = fadeIn(tween(500, 100)) + slideInVertically(tween(500, 100)) { 100 }) { Column { LuxurySectionTitle("시간별 예보"); LuxuryHourlySection(hourlyData) } } }
+        item { AnimatedVisibility(visible = isVisible, enter = fadeIn(tween(500, 200)) + slideInVertically(tween(500, 200)) { 100 }) { Column { LuxurySectionTitle("상세 기상 정보"); LuxuryDetailGrid(state.current.ifEmpty { state.hourly.take(10) }) } } }
+        item { AnimatedVisibility(visible = isVisible, enter = fadeIn(tween(500, 300)) + slideInVertically(tween(500, 300)) { 100 }) { Column { LuxurySectionTitle("일자별 예보 (중기)"); LuxuryDailyList(state.midTa, state.midLand) } } }
     }
 }
 
 @Composable
 fun LuxuryMainCard(currentItems: List<WeatherItem>, fallbackItems: List<WeatherItem>) {
-    val temp = currentItems.find { it.category == "T1H" }?.let { it.obsrValue ?: it.fcstValue } 
-        ?: currentItems.find { it.category == "TMP" }?.fcstValue
-        ?: fallbackItems.find { it.category == "TMP" }?.fcstValue ?: "--"
-    val skyValue = currentItems.find { it.category == "SKY" }?.fcstValue
-        ?: fallbackItems.find { it.category == "SKY" }?.fcstValue ?: "1"
-    val ptyValue = currentItems.find { it.category == "PTY" }?.let { it.obsrValue ?: it.fcstValue } 
-        ?: fallbackItems.find { it.category == "PTY" }?.fcstValue ?: "0"
-    
+    val temp = currentItems.find { it.category == "T1H" }?.let { it.obsrValue ?: it.fcstValue } ?: fallbackItems.find { it.category == "TMP" }?.fcstValue ?: "--"
+    val skyValue = fallbackItems.find { it.category == "SKY" }?.fcstValue ?: "1"
+    val ptyValue = currentItems.find { it.category == "PTY" }?.let { it.obsrValue ?: it.fcstValue } ?: fallbackItems.find { it.category == "PTY" }?.fcstValue ?: "0"
     Card(modifier = Modifier.fillMaxWidth(), shape = RoundedCornerShape(32.dp), colors = CardDefaults.cardColors(containerColor = Color.Transparent)) {
         Box(modifier = Modifier.background(Brush.linearGradient(listOf(VibeBlue, VibePurple))).padding(32.dp).fillMaxWidth(), contentAlignment = Alignment.Center) {
             Column(horizontalAlignment = Alignment.CenterHorizontally) {

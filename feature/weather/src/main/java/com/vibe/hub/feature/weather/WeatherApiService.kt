@@ -4,6 +4,13 @@ import retrofit2.http.GET
 import retrofit2.http.Query
 
 interface WeatherApiService {
+    // 주소 정보 가져오기
+    @GET("/api/address")
+    suspend fun getAddress(
+        @Query("lat") lat: Double,
+        @Query("lon") lon: Double
+    ): Map<String, String>
+
     // 통합 현재 날씨 (실황 포함)
     @GET("/api/weather/current")
     suspend fun getCurrentWeather(
