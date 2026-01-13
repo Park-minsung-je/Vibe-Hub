@@ -57,7 +57,21 @@ fun VibeServiceCard(
                     ),
                 contentAlignment = Alignment.Center
             ) {
-                Text(text = "🌤️", fontSize = 36.sp)
+                if (service.id == "weather") {
+                    Icon(
+                        painter = androidx.compose.ui.res.painterResource(id = com.vibe.hub.R.drawable.ic_weather_logo),
+                        contentDescription = "Weather Logo",
+                        modifier = Modifier.size(48.dp),
+                        tint = Color.Unspecified // 그라데이션 유지를 위해 tint 제거
+                    )
+                } else {
+                    // 기본 아이콘: 앱 런처 아이콘 사용
+                    androidx.compose.foundation.Image(
+                        painter = androidx.compose.ui.res.painterResource(id = com.vibe.hub.R.mipmap.ic_launcher),
+                        contentDescription = "App Icon",
+                        modifier = Modifier.size(48.dp)
+                    )
+                }
             }
 
             Spacer(modifier = Modifier.height(16.dp))

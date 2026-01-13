@@ -1,45 +1,23 @@
 <vector xmlns:android="http://schemas.android.com/apk/res/android"
-    xmlns:aapt="http://schemas.android.com/aapt"
     android:width="108dp"
     android:height="108dp"
     android:viewportWidth="108"
     android:viewportHeight="108">
     
     <group android:translateX="54" android:translateY="54">
-        <!-- 중앙 허브 노드 -->
+        <!-- 가장 바깥쪽: 순백색 육각형 (기본 베이스) -->
         <path
-            android:pathData="M0 -20 L17.32 -10 L17.32 10 L0 20 L-17.32 10 L-17.32 -10 Z"> <!-- 육각형 -->
-            <aapt:attr name="android:fillColor">
-                <gradient 
-                    android:startX="-20" android:startY="-20" 
-                    android:endX="20" android:endY="20" 
-                    android:type="linear">
-                    <item android:offset="0.0" android:color="#FF4E8AFF"/>
-                    <item android:offset="1.0" android:color="#FFFF6B95"/>
-                </gradient>
-            </aapt:attr>
-        </path>
-        
-        <!-- 연결선 -->
+            android:pathData="M0 -26 L22.52 -13 L22.52 13 L0 26 L-22.52 13 L-22.52 -13 Z"
+            android:fillColor="#FFFFFFFF"/>
+            
+        <!-- 중간층: 은은한 라벤더 보라 (깊이감 시작) -->
         <path
-            android:pathData="M0 -20 L0 -35 M17.32 10 L30.3 17.5 M-17.32 10 L-30.3 17.5"
-            android:strokeColor="#AA6BFF"
-            android:strokeWidth="4"
-            android:strokeLineCap="round"/>
-
-        <!-- 위성 노드 1 (상단) -->
-        <group android:translateY="-42">
-            <path android:pathData="M0 0m-7,0a7,7 0 1,1 14,0a7,7 0 1,1 -14,0" android:fillColor="#FF4E8AFF"/>
-        </group>
-        
-        <!-- 위성 노드 2 (우측 하단) -->
-        <group android:translateX="36.37" android:translateY="21">
-            <path android:pathData="M0 0m-7,0a7,7 0 1,1 14,0a7,7 0 1,1 -14,0" android:fillColor="#FFAA6BFF"/>
-        </group>
-        
-        <!-- 위성 노드 3 (좌측 하단) -->
-        <group android:translateX="-36.37" android:translateY="21">
-            <path android:pathData="M0 0m-7,0a7,7 0 1,1 14,0a7,7 0 1,1 -14,0" android:fillColor="#FFFF6B95"/>
-        </group>
+            android:pathData="M0 -16 L13.86 -8 L13.86 8 L0 16 L-13.86 8 L-13.86 -8 Z"
+            android:fillColor="#FFF5F0FF"/>
+            
+        <!-- 가장 안쪽: 부드러운 소프트 퍼플 (마트료시카 핵심) -->
+        <path
+            android:pathData="M0 -8 L6.93 -4 L6.93 4 L0 8 L-6.93 4 L-6.93 -4 Z"
+            android:fillColor="#FFEBE0FF"/>
     </group>
 </vector>
