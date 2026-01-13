@@ -3,14 +3,8 @@ package com.vibe.hub.feature.weather
 import android.Manifest
 import android.content.pm.PackageManager
 import android.graphics.BlurMaskFilter
-import androidx.compose.animation.AnimatedVisibility
-import androidx.compose.animation.animateColorAsState
-import androidx.compose.animation.core.animateDpAsState
-import androidx.compose.animation.core.animateFloatAsState
-import androidx.compose.animation.core.tween
-import androidx.compose.animation.fadeIn
-import androidx.compose.animation.scaleIn
-import androidx.compose.animation.slideInVertically
+import androidx.compose.animation.*
+import androidx.compose.animation.core.*
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.interaction.MutableInteractionSource
@@ -30,26 +24,15 @@ import androidx.compose.runtime.*
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.draw.alpha
-import androidx.compose.ui.draw.blur
-import androidx.compose.ui.draw.clip
-import androidx.compose.ui.draw.drawBehind
-import androidx.compose.ui.draw.scale
+import androidx.compose.ui.draw.*
 import androidx.compose.ui.geometry.Offset
-import androidx.compose.ui.graphics.Brush
-import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.graphics.Paint
+import androidx.compose.ui.graphics.*
 import androidx.compose.ui.graphics.drawscope.drawIntoCanvas
-import androidx.compose.ui.input.nestedscroll.NestedScrollConnection
-import androidx.compose.ui.input.nestedscroll.NestedScrollSource
-import androidx.compose.ui.input.nestedscroll.nestedScroll
+import androidx.compose.ui.input.nestedscroll.*
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.text.font.FontWeight
-import androidx.compose.ui.unit.Dp
-import androidx.compose.ui.unit.IntOffset
-import androidx.compose.ui.unit.dp
-import androidx.compose.ui.unit.sp
+import androidx.compose.ui.unit.*
 import androidx.compose.ui.zIndex
 import androidx.core.content.ContextCompat
 import androidx.hilt.navigation.compose.hiltViewModel
@@ -59,6 +42,7 @@ import java.time.LocalDate
 import java.time.LocalDateTime
 import java.time.format.DateTimeFormatter
 import java.util.Locale
+import kotlin.math.pow
 import kotlin.math.roundToInt
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -167,6 +151,7 @@ fun WeatherScreen(
 
         Box(modifier = Modifier.fillMaxWidth().windowInsetsTopHeight(WindowInsets.statusBars).background(topColor).zIndex(10f))
         
+        // [수정] 상단바 레이아웃: 타이틀 왼쪽, 주소/시간 오른쪽 끝
         Box(
             modifier = Modifier
                 .fillMaxWidth()
@@ -193,10 +178,10 @@ fun WeatherScreen(
                     verticalArrangement = Arrangement.Center
                 ) {
                     Text(
-                        text = it.address,
+                        text = "📍 ${it.address}",
                         style = MaterialTheme.typography.labelSmall,
-                        color = Color.Black.copy(alpha = 0.5f), // 더 연하게 수정
-                        fontSize = 9.sp, // 더 작게
+                        color = Color.Black.copy(alpha = 0.5f), // 연하게
+                        fontSize = 9.sp,
                         fontWeight = FontWeight.Bold,
                         lineHeight = 10.sp
                     )
@@ -204,7 +189,7 @@ fun WeatherScreen(
                         text = "Updated at ${it.fetchTime}",
                         style = MaterialTheme.typography.labelSmall,
                         color = Color.Black.copy(alpha = 0.4f),
-                        fontSize = 8.sp, // 더 작게
+                        fontSize = 8.sp,
                         lineHeight = 9.sp
                     )
                 }
@@ -253,18 +238,42 @@ fun WeatherLuxuryContent(state: WeatherUiState.Success, toolbarHeight: Dp) {
         contentPadding = PaddingValues(top = WindowInsets.statusBars.asPaddingValues().calculateTopPadding() + toolbarHeight + 16.dp, start = 20.dp, end = 20.dp, bottom = 24.dp),
         verticalArrangement = Arrangement.spacedBy(24.dp)
     ) {
-        item { AnimatedVisibility(visible = isVisible, enter = fadeIn(tween(500)) + slideInVertically(tween(500)) { 100 } + scaleIn(tween(500), initialScale = 0.9f)) { LuxuryMainCard(state.current, state.hourly.take(10)) } }
-        item { AnimatedVisibility(visible = isVisible, enter = fadeIn(tween(500, 100)) + slideInVertically(tween(500, 100)) { 100 }) { Column { LuxurySectionTitle("시간별 예보"); LuxuryHourlySection(hourlyData) } } }
-        item { AnimatedVisibility(visible = isVisible, enter = fadeIn(tween(500, 200)) + slideInVertically(tween(500, 200)) { 100 }) { Column { LuxurySectionTitle("상세 기상 정보"); LuxuryDetailGrid(state.current.ifEmpty { state.hourly.take(10) }) } } }
-        item { AnimatedVisibility(visible = isVisible, enter = fadeIn(tween(500, 300)) + slideInVertically(tween(500, 300)) { 100 }) { Column { LuxurySectionTitle("일자별 예보 (중기)"); LuxuryDailyList(state.midTa, state.midLand) } } }
+        item {
+            AnimatedVisibility(visible = isVisible, enter = fadeIn(tween(500)) + slideInVertically(tween(500)) { 100 } + scaleIn(tween(500), initialScale = 0.9f)) {
+                LuxuryMainCard(state.current, state.hourly.take(10))
+            }
+        }
+        item {
+            AnimatedVisibility(visible = isVisible, enter = fadeIn(tween(500, 100)) + slideInVertically(tween(500, 100)) { 100 }) {
+                Column { LuxurySectionTitle("시간별 예보"); LuxuryHourlySection(hourlyData) }
+            }
+        }
+        // [수정] 순서 변경: 시간별 -> 일자별 -> 상세 -> 대기질
+        item {
+            AnimatedVisibility(visible = isVisible, enter = fadeIn(tween(500, 200)) + slideInVertically(tween(500, 200)) { 100 }) {
+                Column { LuxurySectionTitle("일자별 예보"); LuxuryDailyList(state.midTa, state.midLand) }
+            }
+        }
+        item {
+            AnimatedVisibility(visible = isVisible, enter = fadeIn(tween(500, 250)) + slideInVertically(tween(500, 250)) { 100 }) {
+                Column { LuxurySectionTitle("상세 기상 정보"); LuxuryDetailGrid(state.current.ifEmpty { state.hourly.take(10) }) }
+            }
+        }
+        item {
+            AnimatedVisibility(visible = isVisible, enter = fadeIn(tween(500, 300)) + slideInVertically(tween(500, 300)) { 100 }) {
+                Column { LuxurySectionTitle("대기질 정보"); LuxuryAirQualityCard(state.airQuality) }
+            }
+        }
     }
 }
 
 @Composable
 fun LuxuryMainCard(currentItems: List<WeatherItem>, fallbackItems: List<WeatherItem>) {
-    val temp = currentItems.find { it.category == "T1H" }?.let { it.obsrValue ?: it.fcstValue } ?: fallbackItems.find { it.category == "TMP" }?.fcstValue ?: "--"
+    val temp = currentItems.find { it.category == "T1H" }?.let { it.obsrValue ?: it.fcstValue } 
+        ?: fallbackItems.find { it.category == "TMP" }?.fcstValue ?: "--"
     val skyValue = fallbackItems.find { it.category == "SKY" }?.fcstValue ?: "1"
-    val ptyValue = currentItems.find { it.category == "PTY" }?.let { it.obsrValue ?: it.fcstValue } ?: fallbackItems.find { it.category == "PTY" }?.fcstValue ?: "0"
+    val ptyValue = currentItems.find { it.category == "PTY" }?.let { it.obsrValue ?: it.fcstValue } 
+        ?: fallbackItems.find { it.category == "PTY" }?.fcstValue ?: "0"
     Card(modifier = Modifier.fillMaxWidth(), shape = RoundedCornerShape(32.dp), colors = CardDefaults.cardColors(containerColor = Color.Transparent)) {
         Box(modifier = Modifier.background(Brush.linearGradient(listOf(VibeBlue, VibePurple))).padding(32.dp).fillMaxWidth(), contentAlignment = Alignment.Center) {
             Column(horizontalAlignment = Alignment.CenterHorizontally) {
@@ -295,21 +304,73 @@ fun LuxuryHourlySection(groupedItems: List<List<WeatherItem>>) {
 
 @Composable
 fun LuxuryDetailGrid(items: List<WeatherItem>) {
-    val details = listOf("REH" to "습도", "WSD" to "풍속", "VEC" to "풍향", "POP" to "강수확률")
+    // 체감온도 계산
+    val temp = items.find { it.category == "T1H" || it.category == "TMP" }?.let { it.obsrValue ?: it.fcstValue }?.toDoubleOrNull()
+    val wind = items.find { it.category == "WSD" }?.let { it.obsrValue ?: it.fcstValue }?.toDoubleOrNull()
+    val sensibleTemp = if (temp != null && wind != null) {
+        val v = wind * 3.6
+        val st = 13.12 + 0.6215 * temp - 11.37 * v.pow(0.16) + 0.3965 * temp * v.pow(0.16)
+        String.format("%.1f°", st)
+    } else { "-" }
+
+    // [수정] 상세 정보 순서 변경: 체감/습도 -> 강수확률/강수량 -> 풍향/풍속
+    val details = listOf(
+        "ST" to "체감온도", "REH" to "습도",
+        "POP" to "강수확률", "RN1" to "강수량",
+        "VEC" to "풍향", "WSD" to "풍속"
+    )
+
     Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
         details.chunked(2).forEach { rowItems ->
             Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(12.dp)) {
                 rowItems.forEach { (cat, label) ->
-                    val value = items.find { it.category == cat }?.let { it.obsrValue ?: it.fcstValue } ?: "--"
+                    val value = when(cat) {
+                        "ST" -> sensibleTemp
+                        else -> {
+                            val itemVal = items.find { it.category == cat }?.let { it.obsrValue ?: it.fcstValue } ?: "-"
+                            if (itemVal == "0" && cat == "RN1") "0mm"
+                            else if (itemVal == "-" && cat == "POP") "-" 
+                            else itemVal + getUnit(cat)
+                        }
+                    }
                     Surface(modifier = Modifier.weight(1f), color = Color.White.copy(alpha = 0.6f), shape = RoundedCornerShape(24.dp)) {
                         Column(modifier = Modifier.padding(20.dp)) {
                             Text(label, style = MaterialTheme.typography.labelSmall, color = Color.Gray)
-                            Text(value + getUnit(cat), fontWeight = FontWeight.ExtraBold, fontSize = 18.sp, color = Color.DarkGray)
+                            Text(value, fontWeight = FontWeight.ExtraBold, fontSize = 18.sp, color = Color.DarkGray)
                         }
                     }
                 }
             }
         }
+    }
+}
+
+@Composable
+fun LuxuryAirQualityCard(airQuality: AirQualityItem?) {
+    Surface(color = Color.White.copy(alpha = 0.4f), shape = RoundedCornerShape(28.dp), modifier = Modifier.fillMaxWidth()) {
+        Column(modifier = Modifier.padding(20.dp)) {
+            if (airQuality != null) {
+                Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween, verticalAlignment = Alignment.Bottom) {
+                    Text("통합대기환경지수 ${airQuality.khaiValue ?: "-"}", fontWeight = FontWeight.Bold, fontSize = 16.sp, color = VibePurple)
+                    Text("${airQuality.stationName ?: "-"} 측정소 (${airQuality.dataTime?.substring(11, 16) ?: "-"} 기준)", style = MaterialTheme.typography.labelSmall, color = Color.Gray)
+                }
+                Spacer(modifier = Modifier.height(16.dp))
+                Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
+                    AirQualityItemView("미세먼지", airQuality.pm10Value ?: "-", airQuality.pm10Grade)
+                    AirQualityItemView("초미세먼지", airQuality.pm25Value ?: "-", airQuality.pm25Grade)
+                }
+            } else {
+                Text("대기질 정보를 불러올 수 없습니다.", modifier = Modifier.align(Alignment.CenterHorizontally), color = Color.Gray)
+            }
+        }
+    }
+}
+
+@Composable
+fun AirQualityItemView(label: String, value: String, grade: String?) {
+    Column(horizontalAlignment = Alignment.CenterHorizontally) {
+        Text(label, style = MaterialTheme.typography.labelSmall, color = Color.Gray)
+        Text("$value ㎍/m³", fontWeight = FontWeight.Bold, fontSize = 18.sp, color = Color.DarkGray)
     }
 }
 

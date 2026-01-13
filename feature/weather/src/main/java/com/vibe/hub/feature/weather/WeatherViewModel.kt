@@ -20,7 +20,8 @@ sealed class WeatherUiState {
         val hourly: List<WeatherItem>,
         val midTa: Map<String, String>,
         val midLand: Map<String, String>,
-        val lastUpdated: Long // [추가] 동일 시간 새로고침 감지용
+        val airQuality: AirQualityItem?, // [추가]
+        val lastUpdated: Long
     ) : WeatherUiState()
     data class Error(val message: String) : WeatherUiState()
 }
@@ -42,6 +43,7 @@ class WeatherViewModel @Inject constructor(
                 hourly = repository.cachedHourly ?: emptyList(),
                 midTa = repository.cachedMidTa ?: emptyMap(),
                 midLand = repository.cachedMidLand ?: emptyMap(),
+                airQuality = repository.cachedAirQuality,
                 lastUpdated = System.currentTimeMillis()
             )
             return
@@ -58,13 +60,15 @@ class WeatherViewModel @Inject constructor(
                 val hourlyDef = async { repository.getHourlyForecast(lat, lon) }
                 val midTaDef = async { repository.getMidTa("11B10101") }
                 val midLandDef = async { repository.getMidLand("11B00000") }
+                val airQualityDef = async { repository.getAirQuality(lat, lon) } // [추가]
 
                 val address = addressDef.await().getOrNull()?.get("address") ?: "주소 정보 없음"
                 val current = currentDef.await().getOrDefault(emptyList())
                 val hourly = hourlyDef.await().getOrDefault(emptyList())
                 val midTa = midTaDef.await().getOrNull()?.firstOrNull() ?: emptyMap()
                 val midLand = midLandDef.await().getOrNull()?.firstOrNull() ?: emptyMap()
-                
+                val airQuality = airQualityDef.await().getOrNull()
+
                 val fetchTime = LocalDateTime.now().format(DateTimeFormatter.ofPattern("HH:mm"))
 
                 if (hourly.isNotEmpty() || current.isNotEmpty()) {
@@ -74,11 +78,9 @@ class WeatherViewModel @Inject constructor(
                     repository.cachedHourly = hourly
                     repository.cachedMidTa = midTa
                     repository.cachedMidLand = midLand
+                    repository.cachedAirQuality = airQuality
                     
-                    _uiState.value = WeatherUiState.Success(
-                        address, fetchTime, current, hourly, midTa, midLand, 
-                        lastUpdated = System.currentTimeMillis() // 갱신 시마다 고유값 생성
-                    )
+                    _uiState.value = WeatherUiState.Success(address, fetchTime, current, hourly, midTa, midLand, airQuality, System.currentTimeMillis())
                 } else {
                     _uiState.value = WeatherUiState.Error("데이터 로드 실패")
                 }

@@ -7,12 +7,12 @@ import javax.inject.Singleton
 class WeatherRepository @Inject constructor(
     private val apiService: WeatherApiService
 ) {
-    // 캐시 데이터 보관
     var cachedAddress: String? = null
     var cachedCurrent: List<WeatherItem>? = null
     var cachedHourly: List<WeatherItem>? = null
     var cachedMidTa: Map<String, String>? = null
     var cachedMidLand: Map<String, String>? = null
+    var cachedAirQuality: AirQualityItem? = null // [추가] 대기질 캐시
     var cachedFetchTime: String? = null
 
     fun hasCache(): Boolean = cachedHourly != null && cachedCurrent != null
@@ -23,10 +23,10 @@ class WeatherRepository @Inject constructor(
         cachedHourly = null
         cachedMidTa = null
         cachedMidLand = null
+        cachedAirQuality = null
         cachedFetchTime = null
     }
 
-    // --- API 호출 ---
     suspend fun getAddress(lat: Double, lon: Double): Result<Map<String, String>> = Result.runCatching {
         apiService.getAddress(lat, lon)
     }
@@ -45,5 +45,18 @@ class WeatherRepository @Inject constructor(
 
     suspend fun getMidLand(regId: String): Result<List<Map<String, String>>> = Result.runCatching {
         apiService.getMidLandForecast(regId)
+    }
+
+    // [추가] 대기질 정보 가져오기 (측정소 조회 -> 대기질 조회)
+    suspend fun getAirQuality(lat: Double, lon: Double): Result<AirQualityItem?> = Result.runCatching {
+        val stationRes = apiService.getNearestStation(lat, lon)
+        val stationName = stationRes["stationName"]
+        
+        if (!stationName.isNullOrEmpty()) {
+            val airRes = apiService.getAirQuality(stationName)
+            airRes.firstOrNull()
+        } else {
+            null
+        }
     }
 }
