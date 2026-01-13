@@ -80,9 +80,11 @@ fun WeatherScreen(
         }
     }
 
-    // 새로고침 상태 관리
     val refreshState = rememberPullToRefreshState()
     var isRefreshing by remember { mutableStateOf(false) }
+    
+    // [핵심] 이전 성공 데이터를 보관하여 새로고침 중에도 화면을 유지함
+    var lastSuccessState by remember { mutableStateOf<WeatherUiState.Success?>(null) }
 
     LaunchedEffect(Unit) {
         val fineLocationPermission = ContextCompat.checkSelfPermission(context, Manifest.permission.ACCESS_FINE_LOCATION)
@@ -91,9 +93,11 @@ fun WeatherScreen(
         }
     }
 
-    // 데이터 로드 성공 시 새로고침 상태 해제
     LaunchedEffect(uiState) {
-        if (uiState is WeatherUiState.Success || uiState is WeatherUiState.Error) {
+        if (uiState is WeatherUiState.Success) {
+            lastSuccessState = uiState as WeatherUiState.Success
+            isRefreshing = false
+        } else if (uiState is WeatherUiState.Error) {
             isRefreshing = false
         }
     }
@@ -128,28 +132,35 @@ fun WeatherScreen(
             }
         ) {
             Box(modifier = Modifier.fillMaxSize()) {
-                when (val state = uiState) {
-                    is WeatherUiState.Loading -> {
-                        if (!isRefreshing) {
-                            CircularProgressIndicator(modifier = Modifier.align(Alignment.Center), color = VibePurple)
-                        }
+                // 데이터가 있을 경우 (초기 로드 성공 후 또는 새로고침 중)
+                if (lastSuccessState != null) {
+                    val blurRadius by animateDpAsState(
+                        targetValue = if (isRefreshing) 4.dp else 0.dp,
+                        animationSpec = tween(durationMillis = 500),
+                        label = "BlurRadius"
+                    )
+                    
+                    Box(modifier = Modifier.fillMaxSize().blur(blurRadius)) {
+                        WeatherLuxuryContent(lastSuccessState!!, toolbarHeight)
                     }
-                    is WeatherUiState.Success -> {
-                        WeatherLuxuryContent(state, toolbarHeight)
+
+                    if (isRefreshing) {
+                        Box(modifier = Modifier.fillMaxSize().clickable(interactionSource = remember { MutableInteractionSource() }, indication = null) { })
                     }
-                    is WeatherUiState.Error -> {
-                        if (isRefreshing) {
-                            // 새로고침 중 에러면 기존 UI 유지 (추가 로직 필요 시 Success 상태를 따로 캐싱)
-                        } else {
-                            Text(text = "오류: ${state.message}", modifier = Modifier.align(Alignment.Center))
-                        }
-                    }
+                } 
+                // 초기 로딩 중 (데이터가 한 번도 로드되지 않았을 때)
+                else if (uiState is WeatherUiState.Loading) {
+                    CircularProgressIndicator(modifier = Modifier.align(Alignment.Center), color = VibePurple)
+                }
+                // 초기 에러 발생 시
+                else if (uiState is WeatherUiState.Error) {
+                    Text(text = "오류: ${(uiState as WeatherUiState.Error).message}", modifier = Modifier.align(Alignment.Center))
                 }
             }
         }
 
+        // 상단바 레이아웃 보존
         Box(modifier = Modifier.fillMaxWidth().windowInsetsTopHeight(WindowInsets.statusBars).background(topColor).zIndex(10f))
-        
         Box(
             modifier = Modifier
                 .fillMaxWidth()
@@ -159,15 +170,10 @@ fun WeatherScreen(
                 .background(topColor)
                 .zIndex(5f)
         ) {
-            Text(
-                text = "Vibe Weather", 
-                fontWeight = FontWeight.ExtraBold, 
-                fontSize = 20.sp, 
-                modifier = Modifier.align(Alignment.CenterStart).padding(start = 64.dp), 
-                color = Color.Black
-            )
+            Text(text = "Vibe Weather", fontWeight = FontWeight.ExtraBold, fontSize = 20.sp, modifier = Modifier.align(Alignment.CenterStart).padding(start = 64.dp), color = Color.Black)
         }
 
+        // 뒤로가기 버튼 로직 보존
         val buttonProgress = 1f - (animatedOffset / -toolbarHeightPx)
         val isFloated = buttonProgress < 0.2f 
         val bgAlpha by animateFloatAsState(if (isFloated) 1f else 0f, tween(300), label = "BgAlpha")
@@ -192,20 +198,17 @@ fun WeatherScreen(
                 Icon(imageVector = Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "뒤로가기", tint = iconColor, modifier = Modifier.size(24.dp))
             }
         }
+
+        Box(modifier = Modifier.fillMaxWidth().windowInsetsBottomHeight(WindowInsets.navigationBars).background(bottomColor).align(Alignment.BottomCenter).zIndex(10f))
     }
 }
 
 @Composable
 fun WeatherLuxuryContent(state: WeatherUiState.Success, toolbarHeight: Dp) {
-    // 애니메이션 실행 여부 기억 (Saveable로 화면 전환에도 유지)
     var hasAnimated by rememberSaveable { mutableStateOf(false) }
     var isVisible by remember { mutableStateOf(hasAnimated) }
-    
     LaunchedEffect(Unit) {
-        if (!hasAnimated) {
-            isVisible = true
-            hasAnimated = true
-        }
+        if (!hasAnimated) { isVisible = true; hasAnimated = true }
     }
 
     val hourlyData = state.hourly.groupBy { "${it.fcstDate}${it.fcstTime}" }.values.toList().take(24)
@@ -241,8 +244,10 @@ fun WeatherLuxuryContent(state: WeatherUiState.Success, toolbarHeight: Dp) {
 @Composable
 fun LuxuryMainCard(currentItems: List<WeatherItem>, fallbackItems: List<WeatherItem>) {
     val temp = currentItems.find { it.category == "T1H" }?.let { it.obsrValue ?: it.fcstValue } 
+        ?: currentItems.find { it.category == "TMP" }?.fcstValue
         ?: fallbackItems.find { it.category == "TMP" }?.fcstValue ?: "--"
-    val skyValue = fallbackItems.find { it.category == "SKY" }?.fcstValue ?: "1"
+    val skyValue = currentItems.find { it.category == "SKY" }?.fcstValue
+        ?: fallbackItems.find { it.category == "SKY" }?.fcstValue ?: "1"
     val ptyValue = currentItems.find { it.category == "PTY" }?.let { it.obsrValue ?: it.fcstValue } 
         ?: fallbackItems.find { it.category == "PTY" }?.fcstValue ?: "0"
     
@@ -296,20 +301,26 @@ fun LuxuryDetailGrid(items: List<WeatherItem>) {
 
 @Composable
 fun LuxuryDailyList(midTa: Map<String, String>, midLand: Map<String, String>) {
+    val validDays = (3..10).filter { i ->
+        val wf = midLand["wf${i}Am"] ?: midLand["wf$i"]
+        val tmn = midTa["taMin$i"]
+        val tmx = midTa["taMax$i"]
+        !wf.isNullOrBlank() && !tmn.isNullOrBlank() && tmn != "--" && !tmx.isNullOrBlank() && tmx != "--"
+    }
+    if (validDays.isEmpty()) return
     Surface(color = Color.White.copy(alpha = 0.4f), shape = RoundedCornerShape(28.dp), modifier = Modifier.fillMaxWidth()) {
         Column(modifier = Modifier.padding(16.dp)) {
-            (3..7).forEach { i ->
+            validDays.forEachIndexed { index, i ->
                 val date = LocalDate.now().plusDays(i.toLong()).format(DateTimeFormatter.ofPattern("M월 d일 (E)", Locale.KOREAN))
-                val wf = midLand["wf${i}Am"] ?: midLand["wf$i"] ?: "맑음"
-                val tmn = midTa["taMin$i"] ?: "--"
-                val tmx = midTa["taMax$i"] ?: "--"
-                
+                val wf = midLand["wf${i}Am"] ?: midLand["wf$i"]!!
+                val tmn = midTa["taMin$i"]!!
+                val tmx = midTa["taMax$i"]!!
                 Row(modifier = Modifier.fillMaxWidth().padding(16.dp), verticalAlignment = Alignment.CenterVertically) {
                     Text(date, modifier = Modifier.weight(1f), fontWeight = FontWeight.Medium)
                     Text(getEmojiFromText(wf), modifier = Modifier.weight(1f))
                     Text("${tmn}° / ${tmx}°", fontWeight = FontWeight.Bold, color = VibeBlue)
                 }
-                if (i < 7) HorizontalDivider(color = Color.White.copy(alpha = 0.3f), thickness = 1.dp)
+                if (index < validDays.size - 1) HorizontalDivider(color = Color.White.copy(alpha = 0.3f), thickness = 1.dp)
             }
         }
     }
