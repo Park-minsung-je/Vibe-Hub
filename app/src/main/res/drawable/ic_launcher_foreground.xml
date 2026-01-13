@@ -5,30 +5,41 @@
     android:viewportWidth="108"
     android:viewportHeight="108">
     
-    <!-- 중앙 정렬을 위한 그룹 (약간 아래로 이동) -->
-    <group android:translateX="4" android:translateY="14">
-        
-        <!-- 제미나이 별 (해 역할) -->
+    <group android:translateX="54" android:translateY="54">
+        <!-- 중앙 허브 노드 -->
         <path
-            android:pathData="M40 5C40 23 30 35 10 35C30 35 40 47 40 65C40 47 50 35 70 35C50 35 40 23 40 5Z">
+            android:pathData="M0 -20 L17.32 -10 L17.32 10 L0 20 L-17.32 10 L-17.32 -10 Z"> <!-- 육각형 -->
             <aapt:attr name="android:fillColor">
                 <gradient 
-                    android:startX="10" 
-                    android:startY="10" 
-                    android:endX="90" 
-                    android:endY="90" 
+                    android:startX="-20" android:startY="-20" 
+                    android:endX="20" android:endY="20" 
                     android:type="linear">
                     <item android:offset="0.0" android:color="#FF4E8AFF"/>
-                    <item android:offset="0.5" android:color="#FFAA6BFF"/>
                     <item android:offset="1.0" android:color="#FFFF6B95"/>
                 </gradient>
             </aapt:attr>
         </path>
-
-        <!-- 구름 (전경) -->
+        
+        <!-- 연결선 -->
         <path
-            android:pathData="M85 75H45C36.7157 75 30 68.2843 30 60C30 52.2091 35.9594 45.7909 43.5772 45.0937C44.805 36.1594 52.4175 29.5 61.5 29.5C70.035 29.5 77.4075 35.2869 79.2575 43.5369C79.7319 43.4894 80.2056 43.4894 80.625 43.4894C88.6425 43.4894 95.125 50.0075 95.125 58.0625C95.125 67.5125 88.2812 75 80.625 75H85Z"
-            android:fillColor="#FAFFFFFF"/>
-            
+            android:pathData="M0 -20 L0 -35 M17.32 10 L30.3 17.5 M-17.32 10 L-30.3 17.5"
+            android:strokeColor="#AA6BFF"
+            android:strokeWidth="4"
+            android:strokeLineCap="round"/>
+
+        <!-- 위성 노드 1 (상단) -->
+        <group android:translateY="-42">
+            <path android:pathData="M0 0m-7,0a7,7 0 1,1 14,0a7,7 0 1,1 -14,0" android:fillColor="#FF4E8AFF"/>
+        </group>
+        
+        <!-- 위성 노드 2 (우측 하단) -->
+        <group android:translateX="36.37" android:translateY="21">
+            <path android:pathData="M0 0m-7,0a7,7 0 1,1 14,0a7,7 0 1,1 -14,0" android:fillColor="#FFAA6BFF"/>
+        </group>
+        
+        <!-- 위성 노드 3 (좌측 하단) -->
+        <group android:translateX="-36.37" android:translateY="21">
+            <path android:pathData="M0 0m-7,0a7,7 0 1,1 14,0a7,7 0 1,1 -14,0" android:fillColor="#FFFF6B95"/>
+        </group>
     </group>
 </vector>
