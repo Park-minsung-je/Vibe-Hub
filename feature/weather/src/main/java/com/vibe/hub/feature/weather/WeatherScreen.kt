@@ -343,10 +343,9 @@ fun LuxuryDailyList(midTa: Map<String, String>, midLand: Map<String, String>) {
     }
     if (validDays.isEmpty()) return
     Surface(color = Color.White.copy(alpha = 0.4f), shape = RoundedCornerShape(28.dp), modifier = Modifier.fillMaxWidth()) {
-        Column(modifier = Modifier.padding(16.dp)) {
+        Column(modifier = Modifier.padding(vertical = 8.dp, horizontal = 16.dp)) { // 패딩 축소
             validDays.forEachIndexed { index, i ->
                 val date = LocalDate.now().plusDays(i.toLong()).format(DateTimeFormatter.ofPattern("M월 d일 (E)", Locale.KOREAN))
-                // [수정] 오전/오후 데이터 분리 표시
                 val wfAm = midLand["wf${i}Am"] ?: midLand["wf$i"] ?: ""
                 val wfPm = midLand["wf${i}Pm"] ?: wfAm
                 val rnStAm = midLand["rnSt${i}Am"] ?: midLand["rnSt$i"] ?: ""
@@ -355,24 +354,32 @@ fun LuxuryDailyList(midTa: Map<String, String>, midLand: Map<String, String>) {
                 val tmn = midTa["taMin$i"]!!
                 val tmx = midTa["taMax$i"]!!
                 
-                Row(modifier = Modifier.fillMaxWidth().padding(16.dp), verticalAlignment = Alignment.CenterVertically) {
-                    Text(date, modifier = Modifier.weight(1.2f), fontWeight = FontWeight.Medium)
+                Row(
+                    modifier = Modifier.fillMaxWidth().padding(vertical = 12.dp), // 행 간격 축소
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Text(date, modifier = Modifier.weight(1f), fontWeight = FontWeight.Medium, fontSize = 14.sp)
                     
-                    // 오전/오후 날씨 아이콘 및 강수확률
-                    Column(modifier = Modifier.weight(1.5f), horizontalAlignment = Alignment.CenterHorizontally) {
-                        Row(verticalAlignment = Alignment.CenterVertically) {
-                            Text("오전 ", fontSize = 10.sp, color = Color.Gray)
+                    // 오전/오후 날씨
+                    Row(modifier = Modifier.weight(1.5f), horizontalArrangement = Arrangement.Center, verticalAlignment = Alignment.CenterVertically) {
+                        Column(horizontalAlignment = Alignment.CenterHorizontally, modifier = Modifier.padding(end = 8.dp)) {
+                            Text("오전", fontSize = 10.sp, color = Color.Gray)
                             Text(getEmojiFromText(wfAm))
-                            if (rnStAm.isNotEmpty() && rnStAm != "0") Text(" $rnStAm%", fontSize = 10.sp, color = VibeBlue)
+                            if (rnStAm.isNotEmpty() && rnStAm != "0") Text("$rnStAm%", fontSize = 10.sp, color = VibeBlue)
                         }
-                        Row(verticalAlignment = Alignment.CenterVertically) {
-                            Text("오후 ", fontSize = 10.sp, color = Color.Gray)
+                        Column(horizontalAlignment = Alignment.CenterHorizontally, modifier = Modifier.padding(start = 8.dp)) {
+                            Text("오후", fontSize = 10.sp, color = Color.Gray)
                             Text(getEmojiFromText(wfPm))
-                            if (rnStPm.isNotEmpty() && rnStPm != "0") Text(" $rnStPm%", fontSize = 10.sp, color = VibeBlue)
+                            if (rnStPm.isNotEmpty() && rnStPm != "0") Text("$rnStPm%", fontSize = 10.sp, color = VibeBlue)
                         }
                     }
                     
-                    Text("${tmn}° / ${tmx}°", modifier = Modifier.weight(1f), fontWeight = FontWeight.Bold, color = VibeBlue, textAlign = androidx.compose.ui.text.style.TextAlign.End)
+                    // 기온 (최저: 파랑, 최고: 빨강)
+                    Row(modifier = Modifier.weight(1f), horizontalArrangement = Arrangement.End) {
+                        Text("$tmn°", fontWeight = FontWeight.Bold, color = Color(0xFF42A5F5), fontSize = 16.sp) // 최저 (파랑)
+                        Text(" / ", color = Color.Gray, fontSize = 16.sp)
+                        Text("$tmx°", fontWeight = FontWeight.Bold, color = Color(0xFFEF5350), fontSize = 16.sp) // 최고 (빨강)
+                    }
                 }
                 if (index < validDays.size - 1) HorizontalDivider(color = Color.White.copy(alpha = 0.3f), thickness = 1.dp)
             }
