@@ -211,7 +211,17 @@ fun WeatherLuxuryContent(state: WeatherUiState.Success, toolbarHeight: Dp) {
         if (!hasAnimated) { isVisible = true; hasAnimated = true }
     }
 
-    val hourlyData = state.hourly.groupBy { "${it.fcstDate}${it.fcstTime}" }.values.toList().take(24)
+    val hourlyData = state.hourly
+        .filter { 
+            val nowStr = LocalDateTime.now().format(DateTimeFormatter.ofPattern("yyyyMMddHH")) + "00"
+            val itemTime = it.fcstDate + it.fcstTime
+            // 현재 시간(분 제외)보다 크거나 같은 데이터만 포함
+            itemTime >= nowStr 
+        }
+        .groupBy { "${it.fcstDate}${it.fcstTime}" }
+        .values
+        .toList()
+        .take(24)
 
     LazyColumn(
         modifier = Modifier.fillMaxSize(),
