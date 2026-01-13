@@ -17,7 +17,11 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material3.*
+import androidx.compose.material3.pulltorefresh.PullToRefreshBox
+import androidx.compose.material3.pulltorefresh.PullToRefreshDefaults
+import androidx.compose.material3.pulltorefresh.rememberPullToRefreshState
 import androidx.compose.runtime.*
+import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.*
@@ -76,10 +80,21 @@ fun WeatherScreen(
         }
     }
 
+    // 새로고침 상태 관리
+    val refreshState = rememberPullToRefreshState()
+    var isRefreshing by remember { mutableStateOf(false) }
+
     LaunchedEffect(Unit) {
         val fineLocationPermission = ContextCompat.checkSelfPermission(context, Manifest.permission.ACCESS_FINE_LOCATION)
         if (fineLocationPermission == PackageManager.PERMISSION_GRANTED) {
             viewModel.fetchWeather(lat, lon)
+        }
+    }
+
+    // 데이터 로드 성공 시 새로고침 상태 해제
+    LaunchedEffect(uiState) {
+        if (uiState is WeatherUiState.Success || uiState is WeatherUiState.Error) {
+            isRefreshing = false
         }
     }
 
@@ -92,16 +107,43 @@ fun WeatherScreen(
             .background(backgroundBrush)
             .nestedScroll(nestedScrollConnection)
     ) {
-        Box(modifier = Modifier.fillMaxSize()) {
-            when (val state = uiState) {
-                is WeatherUiState.Loading -> {
-                    CircularProgressIndicator(modifier = Modifier.align(Alignment.Center), color = VibePurple)
-                }
-                is WeatherUiState.Success -> {
-                    WeatherLuxuryContent(state, toolbarHeight)
-                }
-                is WeatherUiState.Error -> {
-                    Text(text = "오류: ${state.message}", modifier = Modifier.align(Alignment.Center))
+        PullToRefreshBox(
+            isRefreshing = isRefreshing,
+            onRefresh = {
+                isRefreshing = true
+                viewModel.fetchWeather(lat, lon, forceRefresh = true)
+            },
+            state = refreshState,
+            modifier = Modifier.fillMaxSize(),
+            indicator = {
+                PullToRefreshDefaults.Indicator(
+                    state = refreshState,
+                    isRefreshing = isRefreshing,
+                    modifier = Modifier
+                        .align(Alignment.TopCenter)
+                        .padding(top = statusBarHeight + toolbarHeight),
+                    containerColor = Color.White,
+                    color = VibePurple
+                )
+            }
+        ) {
+            Box(modifier = Modifier.fillMaxSize()) {
+                when (val state = uiState) {
+                    is WeatherUiState.Loading -> {
+                        if (!isRefreshing) {
+                            CircularProgressIndicator(modifier = Modifier.align(Alignment.Center), color = VibePurple)
+                        }
+                    }
+                    is WeatherUiState.Success -> {
+                        WeatherLuxuryContent(state, toolbarHeight)
+                    }
+                    is WeatherUiState.Error -> {
+                        if (isRefreshing) {
+                            // 새로고침 중 에러면 기존 UI 유지 (추가 로직 필요 시 Success 상태를 따로 캐싱)
+                        } else {
+                            Text(text = "오류: ${state.message}", modifier = Modifier.align(Alignment.Center))
+                        }
+                    }
                 }
             }
         }
@@ -155,8 +197,16 @@ fun WeatherScreen(
 
 @Composable
 fun WeatherLuxuryContent(state: WeatherUiState.Success, toolbarHeight: Dp) {
-    var isVisible by remember { mutableStateOf(false) }
-    LaunchedEffect(Unit) { isVisible = true }
+    // 애니메이션 실행 여부 기억 (Saveable로 화면 전환에도 유지)
+    var hasAnimated by rememberSaveable { mutableStateOf(false) }
+    var isVisible by remember { mutableStateOf(hasAnimated) }
+    
+    LaunchedEffect(Unit) {
+        if (!hasAnimated) {
+            isVisible = true
+            hasAnimated = true
+        }
+    }
 
     val hourlyData = state.hourly.groupBy { "${it.fcstDate}${it.fcstTime}" }.values.toList().take(24)
 
