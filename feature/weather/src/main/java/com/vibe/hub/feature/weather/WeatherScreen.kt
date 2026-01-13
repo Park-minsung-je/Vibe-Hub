@@ -151,7 +151,6 @@ fun WeatherScreen(
 
         Box(modifier = Modifier.fillMaxWidth().windowInsetsTopHeight(WindowInsets.statusBars).background(topColor).zIndex(10f))
         
-        // [수정] 상단바 레이아웃: 타이틀 왼쪽, 주소/시간 오른쪽 끝
         Box(
             modifier = Modifier
                 .fillMaxWidth()
@@ -161,37 +160,15 @@ fun WeatherScreen(
                 .background(topColor)
                 .zIndex(5f)
         ) {
-            Text(
-                text = "Vibe Weather", 
-                fontWeight = FontWeight.ExtraBold, 
-                fontSize = 20.sp, 
-                modifier = Modifier.align(Alignment.CenterStart).padding(start = 64.dp), 
-                color = Color.Black
-            )
-
+            Text(text = "Vibe Weather", fontWeight = FontWeight.ExtraBold, fontSize = 20.sp, modifier = Modifier.align(Alignment.CenterStart).padding(start = 64.dp), color = Color.Black)
             lastSuccessState?.let {
                 Column(
-                    modifier = Modifier
-                        .align(Alignment.CenterEnd)
-                        .padding(end = 20.dp),
+                    modifier = Modifier.align(Alignment.CenterEnd).padding(end = 20.dp),
                     horizontalAlignment = Alignment.End,
                     verticalArrangement = Arrangement.Center
                 ) {
-                    Text(
-                        text = "📍 ${it.address}",
-                        style = MaterialTheme.typography.labelSmall,
-                        color = Color.Black.copy(alpha = 0.5f), // 연하게
-                        fontSize = 9.sp,
-                        fontWeight = FontWeight.Bold,
-                        lineHeight = 10.sp
-                    )
-                    Text(
-                        text = "Updated at ${it.fetchTime}",
-                        style = MaterialTheme.typography.labelSmall,
-                        color = Color.Black.copy(alpha = 0.4f),
-                        fontSize = 8.sp,
-                        lineHeight = 9.sp
-                    )
+                    Text(text = "📍 ${it.address}", style = MaterialTheme.typography.labelSmall, color = Color.Black.copy(alpha = 0.5f), fontSize = 9.sp, fontWeight = FontWeight.Bold, lineHeight = 10.sp)
+                    Text(text = "Updated at ${it.fetchTime}", style = MaterialTheme.typography.labelSmall, color = Color.Black.copy(alpha = 0.4f), fontSize = 8.sp, lineHeight = 9.sp)
                 }
             }
         }
@@ -238,32 +215,11 @@ fun WeatherLuxuryContent(state: WeatherUiState.Success, toolbarHeight: Dp) {
         contentPadding = PaddingValues(top = WindowInsets.statusBars.asPaddingValues().calculateTopPadding() + toolbarHeight + 16.dp, start = 20.dp, end = 20.dp, bottom = 24.dp),
         verticalArrangement = Arrangement.spacedBy(24.dp)
     ) {
-        item {
-            AnimatedVisibility(visible = isVisible, enter = fadeIn(tween(500)) + slideInVertically(tween(500)) { 100 } + scaleIn(tween(500), initialScale = 0.9f)) {
-                LuxuryMainCard(state.current, state.hourly.take(10))
-            }
-        }
-        item {
-            AnimatedVisibility(visible = isVisible, enter = fadeIn(tween(500, 100)) + slideInVertically(tween(500, 100)) { 100 }) {
-                Column { LuxurySectionTitle("시간별 예보"); LuxuryHourlySection(hourlyData) }
-            }
-        }
-        // [수정] 순서 변경: 시간별 -> 일자별 -> 상세 -> 대기질
-        item {
-            AnimatedVisibility(visible = isVisible, enter = fadeIn(tween(500, 200)) + slideInVertically(tween(500, 200)) { 100 }) {
-                Column { LuxurySectionTitle("일자별 예보"); LuxuryDailyList(state.midTa, state.midLand) }
-            }
-        }
-        item {
-            AnimatedVisibility(visible = isVisible, enter = fadeIn(tween(500, 250)) + slideInVertically(tween(500, 250)) { 100 }) {
-                Column { LuxurySectionTitle("상세 기상 정보"); LuxuryDetailGrid(state.current.ifEmpty { state.hourly.take(10) }) }
-            }
-        }
-        item {
-            AnimatedVisibility(visible = isVisible, enter = fadeIn(tween(500, 300)) + slideInVertically(tween(500, 300)) { 100 }) {
-                Column { LuxurySectionTitle("대기질 정보"); LuxuryAirQualityCard(state.airQuality) }
-            }
-        }
+        item { AnimatedVisibility(visible = isVisible, enter = fadeIn(tween(500)) + slideInVertically(tween(500)) { 100 } + scaleIn(tween(500), initialScale = 0.9f)) { LuxuryMainCard(state.current, state.hourly.take(10)) } }
+        item { AnimatedVisibility(visible = isVisible, enter = fadeIn(tween(500, 100)) + slideInVertically(tween(500, 100)) { 100 }) { Column { LuxurySectionTitle("시간별 예보"); LuxuryHourlySection(hourlyData) } } }
+        item { AnimatedVisibility(visible = isVisible, enter = fadeIn(tween(500, 200)) + slideInVertically(tween(500, 200)) { 100 }) { Column { LuxurySectionTitle("일자별 예보"); LuxuryDailyList(state.midTa, state.midLand) } } }
+        item { AnimatedVisibility(visible = isVisible, enter = fadeIn(tween(500, 250)) + slideInVertically(tween(500, 250)) { 100 }) { Column { LuxurySectionTitle("상세 기상 정보"); LuxuryDetailGrid(state.current.ifEmpty { state.hourly.take(10) }) } } }
+        item { AnimatedVisibility(visible = isVisible, enter = fadeIn(tween(500, 300)) + slideInVertically(tween(500, 300)) { 100 }) { Column { LuxurySectionTitle("대기질 정보"); LuxuryAirQualityCard(state.airQuality) } } }
     }
 }
 
@@ -304,7 +260,6 @@ fun LuxuryHourlySection(groupedItems: List<List<WeatherItem>>) {
 
 @Composable
 fun LuxuryDetailGrid(items: List<WeatherItem>) {
-    // 체감온도 계산
     val temp = items.find { it.category == "T1H" || it.category == "TMP" }?.let { it.obsrValue ?: it.fcstValue }?.toDoubleOrNull()
     val wind = items.find { it.category == "WSD" }?.let { it.obsrValue ?: it.fcstValue }?.toDoubleOrNull()
     val sensibleTemp = if (temp != null && wind != null) {
@@ -313,13 +268,7 @@ fun LuxuryDetailGrid(items: List<WeatherItem>) {
         String.format("%.1f°", st)
     } else { "-" }
 
-    // [수정] 상세 정보 순서 변경: 체감/습도 -> 강수확률/강수량 -> 풍향/풍속
-    val details = listOf(
-        "ST" to "체감온도", "REH" to "습도",
-        "POP" to "강수확률", "RN1" to "강수량",
-        "VEC" to "풍향", "WSD" to "풍속"
-    )
-
+    val details = listOf("ST" to "체감온도", "REH" to "습도", "POP" to "강수확률", "RN1" to "강수량", "VEC" to "풍향", "WSD" to "풍속")
     Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
         details.chunked(2).forEach { rowItems ->
             Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(12.dp)) {
@@ -355,7 +304,8 @@ fun LuxuryAirQualityCard(airQuality: AirQualityItem?) {
                     Text("${airQuality.stationName ?: "-"} 측정소 (${airQuality.dataTime?.substring(11, 16) ?: "-"} 기준)", style = MaterialTheme.typography.labelSmall, color = Color.Gray)
                 }
                 Spacer(modifier = Modifier.height(16.dp))
-                Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
+                // [수정] 중앙 정렬 배치가 아닌 SpaceBetween 사용하되, 내부 Column은 Center 정렬
+                Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceEvenly) {
                     AirQualityItemView("미세먼지", airQuality.pm10Value ?: "-", airQuality.pm10Grade)
                     AirQualityItemView("초미세먼지", airQuality.pm25Value ?: "-", airQuality.pm25Grade)
                 }
@@ -368,9 +318,18 @@ fun LuxuryAirQualityCard(airQuality: AirQualityItem?) {
 
 @Composable
 fun AirQualityItemView(label: String, value: String, grade: String?) {
+    // [수정] 등급에 따른 색상 적용 로직
+    val gradeColor = when (grade) {
+        "1" -> Color(0xFF4CAF50) // 좋음 (초록)
+        "2" -> Color(0xFFFFC107) // 보통 (노랑)
+        "3" -> Color(0xFFFF9800) // 나쁨 (주황)
+        "4" -> Color(0xFFF44336) // 매우나쁨 (빨강)
+        else -> Color.DarkGray
+    }
+    
     Column(horizontalAlignment = Alignment.CenterHorizontally) {
         Text(label, style = MaterialTheme.typography.labelSmall, color = Color.Gray)
-        Text("$value ㎍/m³", fontWeight = FontWeight.Bold, fontSize = 18.sp, color = Color.DarkGray)
+        Text("$value ㎍/m³", fontWeight = FontWeight.Bold, fontSize = 18.sp, color = gradeColor)
     }
 }
 
@@ -387,13 +346,33 @@ fun LuxuryDailyList(midTa: Map<String, String>, midLand: Map<String, String>) {
         Column(modifier = Modifier.padding(16.dp)) {
             validDays.forEachIndexed { index, i ->
                 val date = LocalDate.now().plusDays(i.toLong()).format(DateTimeFormatter.ofPattern("M월 d일 (E)", Locale.KOREAN))
-                val wf = midLand["wf${i}Am"] ?: midLand["wf$i"]!!
+                // [수정] 오전/오후 데이터 분리 표시
+                val wfAm = midLand["wf${i}Am"] ?: midLand["wf$i"] ?: ""
+                val wfPm = midLand["wf${i}Pm"] ?: wfAm
+                val rnStAm = midLand["rnSt${i}Am"] ?: midLand["rnSt$i"] ?: ""
+                val rnStPm = midLand["rnSt${i}Pm"] ?: rnStAm
+                
                 val tmn = midTa["taMin$i"]!!
                 val tmx = midTa["taMax$i"]!!
+                
                 Row(modifier = Modifier.fillMaxWidth().padding(16.dp), verticalAlignment = Alignment.CenterVertically) {
-                    Text(date, modifier = Modifier.weight(1f), fontWeight = FontWeight.Medium)
-                    Text(getEmojiFromText(wf), modifier = Modifier.weight(1f))
-                    Text("${tmn}° / ${tmx}°", fontWeight = FontWeight.Bold, color = VibeBlue)
+                    Text(date, modifier = Modifier.weight(1.2f), fontWeight = FontWeight.Medium)
+                    
+                    // 오전/오후 날씨 아이콘 및 강수확률
+                    Column(modifier = Modifier.weight(1.5f), horizontalAlignment = Alignment.CenterHorizontally) {
+                        Row(verticalAlignment = Alignment.CenterVertically) {
+                            Text("오전 ", fontSize = 10.sp, color = Color.Gray)
+                            Text(getEmojiFromText(wfAm))
+                            if (rnStAm.isNotEmpty() && rnStAm != "0") Text(" $rnStAm%", fontSize = 10.sp, color = VibeBlue)
+                        }
+                        Row(verticalAlignment = Alignment.CenterVertically) {
+                            Text("오후 ", fontSize = 10.sp, color = Color.Gray)
+                            Text(getEmojiFromText(wfPm))
+                            if (rnStPm.isNotEmpty() && rnStPm != "0") Text(" $rnStPm%", fontSize = 10.sp, color = VibeBlue)
+                        }
+                    }
+                    
+                    Text("${tmn}° / ${tmx}°", modifier = Modifier.weight(1f), fontWeight = FontWeight.Bold, color = VibeBlue, textAlign = androidx.compose.ui.text.style.TextAlign.End)
                 }
                 if (index < validDays.size - 1) HorizontalDivider(color = Color.White.copy(alpha = 0.3f), thickness = 1.dp)
             }
