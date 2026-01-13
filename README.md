@@ -7,16 +7,6 @@
 
 ---
 
-## 📸 Screenshots
-
-<p align="center">
-  <img src="png/vibe_hub_1.png" width="30%" />
-  <img src="png/vibe_hub_2.png" width="30%" />
-  <img src="png/vibe_hub_3.png" width="30%" />
-</p>
-
----
-
 ## ✨ 주요 기능
 
 *   **🧩 모듈형 허브 구조**: 
@@ -57,6 +47,16 @@
 git clone https://github.com/Park-minsung-je/Vibe-Hub.git
 ./gradlew assembleDebug
 ```
+
+---
+
+## 📸 Screenshots
+
+<p align="center">
+  <img src="png/vibe_hub_1.png" width="30%" />
+  <img src="png/vibe_hub_2.png" width="30%" />
+  <img src="png/vibe_hub_3.png" width="30%" />
+</p>
 
 ---
 
