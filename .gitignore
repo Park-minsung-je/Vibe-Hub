@@ -12,6 +12,11 @@ out
 .idea/deploymentTargetDropDown.xml
 .idea/deploymentTargetSelector.xml
 .idea/runConfigurations.xml
+.idea/compiler.xml
+.idea/gradle.xml
+.idea/misc.xml
+.idea/vcs.xml
+.idea/migrations.xml
 
 # Android Studio local properties
 local.properties
@@ -23,6 +28,7 @@ local.properties
 captures
 .externalNativeBuild
 .cxx
+.cxx/
 
 # OS generated files
 .DS_Store
@@ -47,7 +53,16 @@ Thumbs.db
 # Gradle files
 .gradle/
 build/
+*/build/
 
 # Kotlin
 /build
-.kotlin*.hprof
+.kotlin
+
+# Large files (Heap dumps)
+*.hprof
+
+# User specific
+.idea/shelf/
+.idea/workspace.xml
+.idea/tasks.xml
