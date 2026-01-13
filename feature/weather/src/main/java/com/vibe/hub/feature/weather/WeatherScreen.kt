@@ -457,33 +457,35 @@ fun LuxuryDailyList(midTa: Map<String, String>, midLand: Map<String, String>) {
                         color = Color.Black.copy(alpha = 0.6f)
                     )
                     
-                    // 오전 | 오후 날씨
+                    // 오전 | 오후 날씨 (정보 강조)
                     Row(
-                        modifier = Modifier.weight(1.8f), 
+                        modifier = Modifier
+                            .weight(1.8f)
+                            .padding(start = 32.dp), // 확실하게 오른쪽으로 이동
                         horizontalArrangement = Arrangement.Center, 
                         verticalAlignment = Alignment.CenterVertically
                     ) {
                         // 오전 (아이콘 24.sp)
                         Text(getEmojiFromText(wfAm), fontSize = 24.sp)
                         if (rnStAm.isNotEmpty() && rnStAm != "0") {
-                            Text(" $rnStAm%", fontSize = 12.sp, color = VibeBlue, fontWeight = FontWeight.SemiBold)
+                            Text(" $rnStAm%", fontSize = 12.sp, color = VibeBlue, fontWeight = FontWeight.SemiBold) // SemiBold 복구
                         }
                         
-                        // 구분자
-                        Text("|", color = Color.Gray.copy(alpha = 0.2f), modifier = Modifier.padding(horizontal = 4.dp), fontSize = 16.sp)
+                        // 구분자 (더 얇고 은은하게)
+                        Text("|", color = Color.Gray.copy(alpha = 0.15f), modifier = Modifier.padding(horizontal = 4.dp), fontSize = 16.sp, fontWeight = FontWeight.ExtraLight)
                         
                         // 오후 (아이콘 24.sp)
                         Text(getEmojiFromText(wfPm), fontSize = 24.sp)
                         if (rnStPm.isNotEmpty() && rnStPm != "0") {
-                            Text(" $rnStPm%", fontSize = 12.sp, color = VibeBlue, fontWeight = FontWeight.SemiBold)
+                            Text(" $rnStPm%", fontSize = 12.sp, color = VibeBlue, fontWeight = FontWeight.SemiBold) // SemiBold 복구
                         }
                     }
                     
-                    // 기온 (17.sp, Black, 파랑/빨강)
+                    // 기온 (SemiBold 적용)
                     Row(modifier = Modifier.weight(1f), horizontalArrangement = Arrangement.End, verticalAlignment = Alignment.CenterVertically) {
-                        Text("$tmn°", fontWeight = FontWeight.Black, color = Color(0xFF42A5F5), fontSize = 17.sp)
+                        Text("$tmn°", fontWeight = FontWeight.SemiBold, color = Color(0xFF42A5F5), fontSize = 17.sp)
                         Spacer(modifier = Modifier.width(6.dp))
-                        Text("$tmx°", fontWeight = FontWeight.Black, color = Color(0xFFEF5350), fontSize = 17.sp)
+                        Text("$tmx°", fontWeight = FontWeight.SemiBold, color = Color(0xFFEF5350), fontSize = 17.sp)
                     }
                 }
                 if (index < validDays.size - 1) HorizontalDivider(color = Color.White.copy(alpha = 0.3f), thickness = 1.dp)
