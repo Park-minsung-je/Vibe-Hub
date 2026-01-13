@@ -1,10 +1,34 @@
-<?xml version="1.0" encoding="utf-8"?>
 <vector xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:aapt="http://schemas.android.com/aapt"
     android:width="108dp"
     android:height="108dp"
     android:viewportWidth="108"
     android:viewportHeight="108">
-    <path
-        android:fillColor="#FFFFFF"
-        android:pathData="M54,20C54,40 40,54 20,54C40,54 54,68 54,88C54,68 68,54 88,54C68,54 54,40 54,20Z" />
+    
+    <!-- 중앙 정렬을 위한 그룹 (약간 아래로 이동) -->
+    <group android:translateX="4" android:translateY="14">
+        
+        <!-- 제미나이 별 (해 역할) -->
+        <path
+            android:pathData="M40 5C40 23 30 35 10 35C30 35 40 47 40 65C40 47 50 35 70 35C50 35 40 23 40 5Z">
+            <aapt:attr name="android:fillColor">
+                <gradient 
+                    android:startX="10" 
+                    android:startY="10" 
+                    android:endX="90" 
+                    android:endY="90" 
+                    android:type="linear">
+                    <item android:offset="0.0" android:color="#FF4E8AFF"/>
+                    <item android:offset="0.5" android:color="#FFAA6BFF"/>
+                    <item android:offset="1.0" android:color="#FFFF6B95"/>
+                </gradient>
+            </aapt:attr>
+        </path>
+
+        <!-- 구름 (전경) -->
+        <path
+            android:pathData="M85 75H45C36.7157 75 30 68.2843 30 60C30 52.2091 35.9594 45.7909 43.5772 45.0937C44.805 36.1594 52.4175 29.5 61.5 29.5C70.035 29.5 77.4075 35.2869 79.2575 43.5369C79.7319 43.4894 80.2056 43.4894 80.625 43.4894C88.6425 43.4894 95.125 50.0075 95.125 58.0625C95.125 67.5125 88.2812 75 80.625 75H85Z"
+            android:fillColor="#FAFFFFFF"/>
+            
+    </group>
 </vector>
