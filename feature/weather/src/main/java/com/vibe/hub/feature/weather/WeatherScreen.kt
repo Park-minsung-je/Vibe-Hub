@@ -215,8 +215,8 @@ fun WeatherLuxuryContent(state: WeatherUiState.Success, toolbarHeight: Dp) {
         .filter { 
             val nowStr = LocalDateTime.now().format(DateTimeFormatter.ofPattern("yyyyMMddHH")) + "00"
             val itemTime = it.fcstDate + it.fcstTime
-            // 현재 시간(분 제외)보다 크거나 같은 데이터만 포함
-            itemTime >= nowStr 
+            // 현재 시간보다 큰(미래) 데이터만 포함
+            itemTime > nowStr 
         }
         .groupBy { "${it.fcstDate}${it.fcstTime}" }
         .values
